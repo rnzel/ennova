@@ -11,3 +11,4 @@ uploads/
 chroma_db/
 *.log
 .pytest_cache/
+certs/
