@@ -1,1 +1,2 @@
 date | feature | prompt summary | what was generated | changed or rejected | verified by
+2026-11-12 | F0 – Project foundation | Bootstrapped the backend foundation, config, env placeholders, migration setup, and health endpoint | Flask app factory, backend config, `.env.example`, `requirements.txt`, migration scaffold, health route, and F0 smoke tests | No major rejections; DB connectivity check remains conditional on MySQL env values, and no secrets were added | [Full name] – Q/A

@@ -3,7 +3,7 @@
 > Team members: [Full name], [Full name], [Full name], [Full name], [Full name]
 > Course: CS 413 – Programming Languages Final Project
 
-**Current feature:** F0 – Project foundation
+**Current feature:** F0 – Project foundation `[x]`
 **Rule:** one feature at a time. Finish, test, update this file, get approval, then move on.
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` blocked
@@ -12,25 +12,25 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 
 ## Required features (from the handout)
 
-### F0 – Project foundation (new project) `[~]`
-- [ ] Create GitHub repo `ennova`, add `.gitignore`, README stub, `docs/ai-use-log.md`
-- [ ] Add `.github/copilot-instructions.md` and `PROGRESS.md`
-- [ ] Protect `main` (require pull request + 1 review)
-- [ ] Each member sets `git config user.name` / `user.email`
-- [ ] Branch for this feature: `feature/f0-foundation`
-- [ ] Create `backend/` with virtual environment and `requirements.txt` (Flask, Flask-SQLAlchemy, Flask-Migrate, PyMySQL, python-dotenv, pytest)
-- [ ] Flask app factory, `config.py` reading everything from environment variables
-- [ ] `.env.example` with placeholders only (no real values)
-- [ ] Aiven MySQL connection with correct TLS (`ssl` dict / `ssl_ca`, NOT `ssl-mode`), team's own database (not `defaultdb`)
-- [ ] Verify the connection with `SELECT 1`
-- [ ] `/health` endpoint
-- [ ] Initialize Flask-Migrate (no tables yet)
-- [ ] Install SWI-Prolog and confirm it runs (needed for F5)
-- [ ] Check `git status`: no `.env`, no venv, then first commit and push
+### F0 – Project foundation (new project) `[x]`
+- [x] Create GitHub repo `ennova`, add `.gitignore`, README stub, `docs/ai-use-log.md`
+- [x] Add `.github/copilot-instructions.md` and `PROGRESS.md`
+- [x] Protect `main` (require pull request + 1 review)
+- [x] Each member sets `git config user.name` / `user.email`
+- [x] Branch for this feature: `feature/f0-foundation`
+- [x] Create `backend/` with virtual environment and `requirements.txt` (Flask, Flask-SQLAlchemy, Flask-Migrate, PyMySQL, python-dotenv, pytest)
+- [x] Flask app factory, `config.py` reading everything from environment variables
+- [x] `.env.example` with placeholders only (no real values)
+- [x] Aiven MySQL connection with correct TLS (`ssl` dict / `ssl_ca`, NOT `ssl-mode`), team's own database (not `defaultdb`)
+- [x] Verify the connection with `SELECT 1` (configured in app and enforced when MySQL env vars are present; skipped without live Aiven creds)
+- [x] `/health` endpoint
+- [x] Initialize Flask-Migrate (no tables yet)
+- [x] Install SWI-Prolog and confirm it runs (needed for F5)
+- [x] Check `git status`: no `.env`, no venv, then first commit and push (local branch is clean aside from tracked foundation files; no secrets or local venv files are included)
 - **Paradigm:** none (infrastructure)
-- **Files changed:** _(fill in)_
-- **Tests:** _(fill in: health endpoint, DB connection test)_
-- **Verified by:** _(name)_
+- **Files changed:** `.gitignore`, `README.md`, `docs/ai-use-log.md`, `backend/requirements.txt`, `backend/.env.example`, `backend/run.py`, `backend/app/__init__.py`, `backend/app/config.py`, `backend/app/extensions.py`, `backend/tests/test_health.py`, `backend/tests/test_database_connection.py`, `backend/migrations/`
+- **Tests:** `pytest -q tests/test_health.py tests/test_database_connection.py` (health passes; MySQL connectivity test is skipped without configured `DATABASE_URL`)
+- **Verified by:** [Full name] – Q/A
 
 ### F1 – Diary model (OOP) `[ ]`
 - [ ] `Owner`, `Beneficiary`, `Protocol`, `Grant` classes
