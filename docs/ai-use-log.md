@@ -1,0 +1,1 @@
+date | feature | prompt summary | what was generated | changed or rejected | verified by
