@@ -3,7 +3,7 @@
 > Team members: [Full name], [Full name], [Full name], [Full name], [Full name]
 > Course: CS 413 – Programming Languages Final Project
 
-**Current feature:** F1 – Diary model `[x]`
+**Current feature:** F2 – Entry processing `[x]`
 **Rule:** one feature at a time. Finish, test, update this file, get approval, then move on.
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` blocked
@@ -43,13 +43,17 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Open issues:** None for F1. Prolog authorization and policy-freeze enforcement remain in their planned later features.
 - **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
 
-### F2 – Entry processing (Functional) `[ ]`
-- [ ] Immutable entry data (frozen dataclasses)
-- [ ] `normalize`, `extract_names` (`[[name]]`), `extract_topics` (`#tag`)
-- [ ] `correct` (rule-based, pure), `diff`
-- [ ] Hash chain as a fold, `TamperDetected` on mismatch
-- [ ] Tests for every function and for tampering
+### F2 – Entry processing (Functional) `[x]`
+- [x] Immutable entry data (frozen dataclasses)
+- [x] `normalize`, `extract_names` (`[[name]]`), `extract_topics` (`#tag`)
+- [x] `correct` (rule-based, pure), `diff`
+- [x] Hash chain as a fold, `TamperDetected` on mismatch
+- [x] Tests for every function and for tampering
 - **Paradigm:** Functional
+- **Files changed:** `backend/app/domain/processing/__init__.py`, `backend/app/domain/processing/exceptions.py`, `backend/app/domain/processing/functions.py`, `backend/app/domain/processing/models.py`, `backend/tests/test_processing.py`
+- **Tests:** `pytest -q tests/test_processing.py` (13 passed); `pytest -q tests` (21 passed)
+- **Open issues:** None for F2. `correct` intentionally uses caller-supplied immutable correction rules; safe boundary fallbacks are handled in F8.
+- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
 
 ### F3 – Writing modes (OOP) `[ ]`
 - [ ] Abstract `WritingMode`, plus `Verbatim`, `LightFix`, `Review`
