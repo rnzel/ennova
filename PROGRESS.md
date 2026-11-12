@@ -3,7 +3,7 @@
 > Team members: [Full name], [Full name], [Full name], [Full name], [Full name]
 > Course: CS 413 – Programming Languages Final Project
 
-**Current feature:** F0 – Project foundation `[x]`
+**Current feature:** F1 – Diary model `[x]`
 **Rule:** one feature at a time. Finish, test, update this file, get approval, then move on.
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` blocked
@@ -32,12 +32,16 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Tests:** `pytest -q tests/test_health.py tests/test_database_connection.py` (health passes; MySQL connectivity test is skipped without configured `DATABASE_URL`)
 - **Verified by:** [Full name] – Q/A
 
-### F1 – Diary model (OOP) `[ ]`
-- [ ] `Owner`, `Beneficiary`, `Protocol`, `Grant` classes
-- [ ] `Entry` base class with `DiaryEntry` and `LetterEntry`
-- [ ] `Vault` with `append()` and read-only access (no edit/delete)
-- [ ] Tests: inheritance, polymorphism, encapsulation
+### F1 – Diary model (OOP) `[x]`
+- [x] `Owner`, `Beneficiary`, `Protocol`, `Grant` classes
+- [x] `Entry` base class with `DiaryEntry` and `LetterEntry`
+- [x] `Vault` with `append()` and read-only access (no edit/delete)
+- [x] Tests: inheritance, polymorphism, encapsulation
 - **Paradigm:** Object-oriented
+- **Files changed:** `backend/app/domain/__init__.py`, `backend/app/domain/diary/__init__.py`, `backend/app/domain/diary/model.py`, `backend/tests/test_diary_model.py`
+- **Tests:** `pytest -q tests/test_diary_model.py` (6 passed); `pytest -q tests` (8 passed)
+- **Open issues:** None for F1. Prolog authorization and policy-freeze enforcement remain in their planned later features.
+- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
 
 ### F2 – Entry processing (Functional) `[ ]`
 - [ ] Immutable entry data (frozen dataclasses)
