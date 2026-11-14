@@ -23,7 +23,7 @@ from .ast_nodes import (
 _PLAIN_ATOM_RE = re.compile(r"[a-z][a-z0-9_]*")
 
 
-def _quote_atom(value: str) -> str:
+def quote_prolog_atom(value: str) -> str:
     """Encode arbitrary text as a safe single-quoted Prolog atom."""
     if not isinstance(value, str):
         raise TypeError("Prolog atom values must be strings.")
@@ -51,12 +51,17 @@ def _quote_atom(value: str) -> str:
     return "'" + "".join(escaped) + "'"
 
 
+def _quote_atom(value: str) -> str:
+    """Keep the original private helper name for existing interpreter calls."""
+    return quote_prolog_atom(value)
+
+
 def _atom(value: str) -> str:
     """Serialize a lowercase plain atom or safely quote arbitrary text."""
     normalized = value.casefold()
     if _PLAIN_ATOM_RE.fullmatch(normalized):
         return normalized
-    return _quote_atom(normalized)
+    return quote_prolog_atom(normalized)
 
 
 def _selector_term(selector: MentioningSelector | TaggedSelector) -> str:
@@ -113,7 +118,7 @@ def interpret(policy: Policy) -> tuple[str, ...]:
         elif isinstance(statement, ReleaseLetter):
             release_date = statement.release_date
             facts.append(
-                f"release({_atom(statement.person)}, {_quote_atom(statement.title)}, "
+                f"release({_atom(statement.person)}, {quote_prolog_atom(statement.title)}, "
                 f"date({release_date.year},{release_date.month},{release_date.day}))."
             )
         elif isinstance(statement, Trustee):
