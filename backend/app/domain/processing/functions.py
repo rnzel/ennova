@@ -52,7 +52,9 @@ def _resolve_name(
     """Resolve a known alias, raising rather than guessing on ambiguity."""
     matches = aliases.get(name.casefold(), {})
     if len(matches) > 1:
-        raise AmbiguousName(f"The name {name!r} matches multiple people.")
+        raise AmbiguousName(
+            {"name": name, "candidates": tuple(matches.values())}
+        )
     if matches:
         return next(iter(matches.values()))
     return name
@@ -214,9 +216,13 @@ def verify_hash_chain(chain: tuple[ChainedEntry, ...]) -> bool:
         if not isinstance(chained_entry, ChainedEntry):
             raise TypeError("chain must contain only ChainedEntry values.")
         if chained_entry.previous_hash != previous_hash:
-            raise TamperDetected(f"Hash-chain link mismatch at position {index}.")
+            raise TamperDetected(
+                {"reason": "hash-chain link mismatch", "position": index}
+            )
         expected = hash_entry(chained_entry.entry, previous_hash)
         if chained_entry.digest != expected.digest:
-            raise TamperDetected(f"Entry hash mismatch at position {index}.")
+            raise TamperDetected(
+                {"reason": "entry hash mismatch", "position": index}
+            )
         previous_hash = chained_entry.digest
     return True
