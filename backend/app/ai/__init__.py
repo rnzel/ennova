@@ -9,8 +9,10 @@ from .client import (
     ToolCall,
 )
 from .citations import Citation, GroundedResponse
+from .gemini import GeminiClient
 from .summaries import (
     FakeSummarizer,
+    GeminiSummarizer,
     InMemorySummaryStore,
     SummaryArtifact,
     SummaryStore,
@@ -22,6 +24,8 @@ __all__ = [
     "Citation",
     "FakeModelClient",
     "FakeSummarizer",
+    "GeminiClient",
+    "GeminiSummarizer",
     "GroundedResponse",
     "InMemorySummaryStore",
     "ModelClient",

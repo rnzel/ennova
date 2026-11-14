@@ -3,7 +3,7 @@
 > Team members: [Full name], [Full name], [Full name], [Full name], [Full name]
 > Course: CS 413 – Programming Languages Final Project
 
-**Current feature:** F7a – Grounded AI orchestration `[x]`
+**Current feature:** F7b – Gemini integration `[x]`
 **Rule:** one feature at a time. Finish, test, update this file, get approval, then move on.
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` blocked
@@ -95,10 +95,10 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 ### F7 – Grounded AI Q&A (Scripting) `[~]`
 - [x] Authorized retrieval (Prolog check BEFORE search)
 - [x] Tools: `search_entries`, `get_entry`, `count_mentions`, `get_letter`
-- [ ] Gemini integration (key on backend only; no Gemini/API key used in F7a)
+- [x] Gemini integration (key on backend only; live calls are opt-in)
 - [x] System prompt; policy remains in Prolog/backend and is not sent to the model
 - [x] Date citations; neutral reply for no-record and denied (identical)
-- [ ] Design note: model, tools, instructions
+- [x] Design note: model, tools, instructions
 - [x] Tests: Maria scenario (all 6 rows), prompt injection, AI unavailable, restricted entries never reach the model
 - **Paradigm:** Scripting
 
@@ -113,7 +113,25 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Paradigm:** Scripting orchestration with Logic-based authorization and Functional/immutable entry processing
 - **Files changed:** `backend/.env.example`, `backend/app/config.py`, `backend/app/policy/access_rules.pl`, `backend/app/policy/access_bridge.py`, `backend/app/policy/__init__.py`, `backend/app/ai/`, `backend/app/services/__init__.py`, `backend/app/services/grounded_qa.py`, `backend/tests/test_grounded_qa.py`, `PROGRESS.md`, `docs/ai-use-log.md`
 - **Tests:** `pytest -q tests/test_grounded_qa.py` (20 passed); `pytest -q` (107 passed); `git diff --check` passed
-- **Open issues:** Owner Q&A is not implemented. Live Gemini integration and the AI design note remain for a later approved F7 step; F7a uses only the scripted fake client and no API key.
+- **Open issues:** Owner Q&A is not implemented. F7a uses only the scripted fake client; live provider behavior is not established by its tests.
+- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
+
+### F7b – Gemini integration `[x]`
+- [x] Pin `google-genai` and configure backend-only `GEMINI_API_KEY`, `GEMINI_MODEL`, and opt-in live tests
+- [x] Add stateless Interactions adapter with schema-only manual tools, strict JSON, bounded retries, timeouts, and safe typed failures
+- [x] Add a write-time Gemini summarizer with untrusted-entry framing, one quote-overlap retry, and digest-bound artifacts
+- [x] Reject stale summaries when their source digest no longer matches the stored entry
+- [x] Add mocked SDK, secrecy, malformed-response, retry, deadline, hostile-entry, and gated fictional live safety tests
+- [x] Keep unavailable and other-recipient letter titles out of model/tool calls; preserve Maria's own pre-release date response
+- [x] Reject case-insensitive duplicate letter titles for the same owner before appending or extending the hash chain
+- [x] Make Prolog fail closed on duplicate title mappings and verify one release rule cannot unlock either duplicate
+- [x] Separate the ENNOVA Gemini logger from the SDK logger, set SDK logging to ERROR, and test canary redaction from exception `str`, `repr`, and `args` while capturing exactly one root-visible project log record
+- [x] Confirm `NEUTRAL_REPLY` directly aliases F8's `ACCESS_DENIED_PUBLIC_MESSAGE`; the public text has one definition
+- [x] Add the separate Model, Tools, and Instructions design note
+- **Paradigm:** Scripting adapter with Prolog-authorized tool orchestration and derived summary artifacts
+- **Files changed:** `backend/requirements.txt`, `backend/.env.example`, `backend/app/config.py`, `backend/app/ai/__init__.py`, `backend/app/ai/client.py`, `backend/app/ai/gemini.py`, `backend/app/ai/summaries.py`, `backend/app/ai/tools.py`, `backend/app/policy/access_rules.pl`, `backend/app/services/diary_service.py`, `backend/app/services/grounded_qa.py`, `backend/tests/test_gemini.py`, `backend/tests/test_grounded_qa.py`, `backend/tests/test_entry_store.py`, `docs/ai-design-note.md`, `PROGRESS.md`, `docs/ai-use-log.md`
+- **Tests:** `pytest -q tests/test_entry_store.py tests/test_prolog_access.py tests/test_grounded_qa.py` (52 passed); `pytest -q` (128 passed, 1 skipped); `git diff --check` passed
+- **Open issues:** `access_rules.pl` keys letter releases by person and title, not entry ID; it now denies all entries when multiple IDs share a title, including duplicate facts supplied outside `DiaryService`. The supported write path also rejects same-owner duplicate titles. The live Gemini test was skipped because `RUN_LIVE_AI_TESTS` was not enabled; no API key or real provider request was used. Fake and mocked tests do not establish live model behavior. Owner Q&A remains unimplemented.
 - **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
 
 ### F8 – Typed exceptions and fallbacks `[x]`
