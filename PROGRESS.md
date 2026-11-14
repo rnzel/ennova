@@ -3,7 +3,7 @@
 > Team members: [Full name], [Full name], [Full name], [Full name], [Full name]
 > Course: CS 413 – Programming Languages Final Project
 
-**Current feature:** F5 – Prolog access rules `[x]`
+**Current feature:** F8 – Typed exceptions and fallbacks `[x]`
 **Rule:** one feature at a time. Finish, test, update this file, get approval, then move on.
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` blocked
@@ -102,10 +102,16 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - [ ] Tests: Maria scenario (all 6 rows), prompt injection, AI unavailable, restricted entries never reach the model
 - **Paradigm:** Scripting
 
-### F8 – Typed exceptions and fallbacks `[ ]`
-- [ ] `AccessDenied`, `AmbiguousName`, `TamperDetected`, `PolicySyntaxError`
-- [ ] Safe fallback for each, verified by tests
+### F8 – Typed exceptions and fallbacks `[x]`
+- [x] `EnnovaError` base with private detail, safe public message, and stable code
+- [x] `AccessDenied`, `AmbiguousName`, `TamperDetected`, `PolicyFrozen`, `AIServiceUnavailable`, and `PolicySyntaxError`
+- [x] Safe public-response fallback and legacy processing-package re-exports
+- [x] Tests for detail privacy, access-denial message neutrality, fallback behavior, and compatibility
 - **Paradigm:** supports all
+- **Files changed:** `backend/app/errors/base.py`, `backend/app/errors/typed.py`, `backend/app/errors/__init__.py`, `backend/app/errors/policy_syntax.py`, `backend/app/domain/processing/exceptions.py`, `backend/app/domain/processing/functions.py`, `backend/tests/test_errors.py`
+- **Tests:** `pytest -q tests/test_errors.py tests/test_processing.py tests/test_policy_language.py` (50 passed); `pytest -q tests` (76 passed); `git diff --check` passed
+- **Safety note:** `TamperDetected` integrity verification must run only after the access check and only on permitted entries. The errors package has no Flask or database imports and does not map errors to HTTP responses.
+- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
 
 ### F9 – REST API `[ ]`
 - [ ] Endpoints: auth, entries, writing modes, policy, ask-AI
