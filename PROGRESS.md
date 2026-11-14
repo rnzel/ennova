@@ -3,7 +3,7 @@
 > Team members: [Full name], [Full name], [Full name], [Full name], [Full name]
 > Course: CS 413 – Programming Languages Final Project
 
-**Current feature:** F8 – Typed exceptions and fallbacks `[x]`
+**Current feature:** F6a – Entry store `[x]`
 **Rule:** one feature at a time. Finish, test, update this file, get approval, then move on.
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` blocked
@@ -111,6 +111,19 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Files changed:** `backend/app/errors/base.py`, `backend/app/errors/typed.py`, `backend/app/errors/__init__.py`, `backend/app/errors/policy_syntax.py`, `backend/app/domain/processing/exceptions.py`, `backend/app/domain/processing/functions.py`, `backend/tests/test_errors.py`
 - **Tests:** `pytest -q tests/test_errors.py tests/test_processing.py tests/test_policy_language.py` (50 passed); `pytest -q tests` (76 passed); `git diff --check` passed
 - **Safety note:** `TamperDetected` integrity verification must run only after the access check and only on permitted entries. The errors package has no Flask or database imports and does not map errors to HTTP responses.
+- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
+
+### F6a – Entry store `[x]`
+- [x] Append-only `EntryRepository` and `InMemoryEntryRepository`
+- [x] `DiaryService` stores original entries using F2 extraction and hash-chain functions
+- [x] Hash metadata includes owner and entry IDs; timestamps are caller-supplied and timezone-aware
+- [x] Explicit chain verification and head checks; reads do not verify automatically
+- [x] Pure `build_app_facts` for F5 with case-folded names and tags
+- [x] Fictional Lola/Maria/Nora fixture and required six-row SWI-Prolog integration test
+- **Paradigm:** Object-oriented repository/service using the Functional F2 pipeline and Logic F5 access bridge
+- **Files changed:** `backend/app/domain/diary/repository.py`, `backend/app/domain/diary/__init__.py`, `backend/app/services/__init__.py`, `backend/app/services/diary_service.py`, `backend/app/services/access_facts.py`, `backend/tests/conftest.py`, `backend/tests/test_entry_store.py`, `backend/tests/test_prolog_access.py`
+- **Tests:** `pytest -q tests/test_entry_store.py tests/test_prolog_access.py` (29 passed); `pytest -q tests` (87 passed); `git diff --check` passed
+- **Open issues:** The in-memory append is not thread-safe. A database repository must atomically read the last hash and insert the next record. Release dates are policy data, not `LetterEntry.release_date`; full-chain verification remains explicit and must follow access authorization.
 - **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
 
 ### F9 – REST API `[ ]`

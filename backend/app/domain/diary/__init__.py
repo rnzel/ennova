@@ -11,15 +11,19 @@ from .model import (
     Protocol,
     Vault,
 )
+from .repository import EntryRepository, InMemoryEntryRepository, StoredEntry
 
 __all__ = [
     "AccessLevel",
     "Beneficiary",
     "DiaryEntry",
     "Entry",
+    "EntryRepository",
     "Grant",
+    "InMemoryEntryRepository",
     "LetterEntry",
     "Owner",
     "Protocol",
+    "StoredEntry",
     "Vault",
 ]
