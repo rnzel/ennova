@@ -17,6 +17,8 @@ class BaseConfig:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     AIVEN_CA_PATH = os.getenv("AIVEN_CA_PATH", "")
     SWIPL_EXECUTABLE = os.getenv("SWIPL_EXECUTABLE", "swipl")
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 
 
 def get_database_connect_args():

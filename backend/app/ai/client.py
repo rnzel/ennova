@@ -31,6 +31,7 @@ class ModelPrompt:
     system_prompt: str
     messages: tuple[PromptMessage, ...]
     available_tools: tuple[str, ...]
+    deadline_monotonic: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,6 +52,8 @@ class ModelClient(Protocol):
 
 class FakeModelClient:
     """Scripted model test double that records every prompt it receives."""
+
+    question_timeout_seconds = 45.0
 
     def __init__(self, responses: tuple[ModelResponse, ...]) -> None:
         """Create a deterministic response sequence."""

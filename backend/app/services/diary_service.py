@@ -56,8 +56,10 @@ class DiaryService:
         timestamp: datetime,
         people: tuple[PersonReference, ...] = (),
     ) -> StoredEntry:
-        """Create and append a letter without using a model release date."""
+        """Append a letter with an owner-unique title and policy-based release."""
         self._validate_timestamp(timestamp)
+        if not isinstance(owner_id, str) or not owner_id.strip():
+            raise ValueError("owner_id must be a non-empty string.")
         # The policy is the source of truth for release dates, not LetterEntry.release_date.
         entry = LetterEntry(
             entry_id,
@@ -67,6 +69,15 @@ class DiaryService:
             recipient,
             release_date=None,
         )
+        title_key = entry.title.casefold()
+        if any(
+            isinstance(record.entry, LetterEntry)
+            and record.entry.title.casefold() == title_key
+            for record in self._repository.list_for_owner(owner_id)
+        ):
+            raise ValueError(
+                "A letter with this title already exists for this owner."
+            )
         return self._add_entry(owner_id, entry, people)
 
     def get_entry(self, owner_id: str, entry_id: str) -> StoredEntry | None:

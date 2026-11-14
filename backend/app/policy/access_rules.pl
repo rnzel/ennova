@@ -50,6 +50,7 @@ eligible_future_release(Person, Title, Today) :-
     registered(Person),
     death_triggered,
     letter(EntryId, Title),
+    unique_letter_title(EntryId, Title),
     entry(EntryId, letter),
     release(Person, Title, ReleaseDate),
     valid_date(Today),
@@ -85,11 +86,17 @@ permitted_entry(Person, EntryId, RequestedLevel, _Today) :-
 permitted_entry(Person, EntryId, _RequestedLevel, Today) :-
     entry(EntryId, letter),
     letter(EntryId, Title),
+    unique_letter_title(EntryId, Title),
     release(Person, Title, ReleaseDate),
     valid_date(ReleaseDate),
     date_key(Today, TodayKey),
     date_key(ReleaseDate, ReleaseKey),
     TodayKey >= ReleaseKey.
+
+unique_letter_title(EntryId, Title) :-
+    % A title-keyed release must not authorize ambiguous letter facts.
+    letter(EntryId, Title),
+    \+ (letter(OtherEntryId, Title), OtherEntryId \= EntryId).
 
 selector_matches(mentioning(Name), EntryId) :-
     entry_mentions(EntryId, Name).

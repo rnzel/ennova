@@ -18,7 +18,13 @@ from app.domain.diary import (
 )
 from app.domain.processing import PersonReference
 from app.errors import AmbiguousName, TamperDetected
-from app.policy import AccessRequest, AppFacts, PrologAccessBridge, parse
+from app.policy import (
+    AccessRequest,
+    AppFacts,
+    EntryFact,
+    PrologAccessBridge,
+    parse,
+)
 from app.services import DiaryService, build_app_facts
 
 ROOT = Path(__file__).parents[2]
@@ -207,6 +213,74 @@ def test_service_keeps_original_text_and_binds_hash_to_owner_entry_and_timestamp
     assert ("entry_id", "entry-1") in record.chain_entry.entry.metadata
     assert record.names == ("Maria",)
     assert not hasattr(record, "corrected_content")
+
+
+def test_duplicate_letter_titles_are_rejected_before_hash_chain_changes(
+    swipl_executable: str,
+):
+    repository = InMemoryEntryRepository()
+    service = DiaryService(repository)
+    owner_id = "owner-lola"
+    first = service.add_letter_entry(
+        owner_id,
+        "letter-one",
+        "A fictional note for Maria.",
+        "To Maria",
+        "Maria",
+        datetime(2026, 11, 14, 10, tzinfo=timezone.utc),
+    )
+    records_before = service.list_entries(owner_id)
+    head_before = service.head_hash(owner_id)
+
+    with pytest.raises(ValueError, match="title already exists"):
+        service.add_letter_entry(
+            owner_id,
+            "letter-two",
+            "A second fictional note for Maria.",
+            "tO mArIa",
+            "Maria",
+            datetime(2026, 11, 14, 11, tzinfo=timezone.utc),
+        )
+
+    assert service.list_entries(owner_id) == records_before == (first,)
+    assert service.head_hash(owner_id) == head_before
+    assert service.verify(owner_id, expected_head=head_before)
+
+    app_facts = build_app_facts(
+        owner_id,
+        service.list_entries(owner_id),
+        ("Maria",),
+        death_triggered=True,
+        policy_frozen=True,
+    )
+    policy = parse(
+        'release letter "To Maria" to maria when date >= 2040-05-01\n'
+    )
+    bridge = PrologAccessBridge(swipl_executable, timeout_seconds=5.0)
+    request_one = AccessRequest(
+        "maria", "letter-one", "verbatim", date(2040, 5, 1)
+    )
+    assert bridge.can_access_many(policy, app_facts, (request_one,)) == (
+        "allow",
+    )
+
+    duplicate_facts = replace(
+        app_facts,
+        entries=app_facts.entries + (EntryFact("letter-two", "letter"),),
+        letters=app_facts.letters + (("letter-two", "To Maria"),),
+    )
+    decisions = bridge.can_access_many(
+        policy,
+        duplicate_facts,
+        (
+            request_one,
+            AccessRequest(
+                "maria", "letter-two", "verbatim", date(2040, 5, 1)
+            ),
+        ),
+    )
+
+    assert decisions == ("deny", "deny")
 
 
 def test_ambiguous_names_leave_repository_and_chain_unchanged():

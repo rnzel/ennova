@@ -194,7 +194,10 @@ def _entry_view(
         content = record.entry.original_content
     elif level == "summary":
         summary = context.summaries.get(context.owner_id, record.entry.entry_id)
-        if summary is None:
+        if (
+            summary is None
+            or summary.source_digest != record.chain_entry.digest
+        ):
             return None
         content = summary.text
     else:
