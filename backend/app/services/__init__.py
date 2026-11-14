@@ -2,5 +2,6 @@
 # Paradigm: Application services
 from .access_facts import build_app_facts
 from .diary_service import DiaryService
+from .grounded_qa import GroundedQAService
 
-__all__ = ["DiaryService", "build_app_facts"]
+__all__ = ["DiaryService", "GroundedQAService", "build_app_facts"]

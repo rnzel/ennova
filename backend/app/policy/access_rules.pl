@@ -36,6 +36,29 @@ can_access(Person, EntryId, Level, Today, Decision) :-
     ;   Decision = deny
     ).
 
+letter_status(Person, Title, Today, Status) :-
+    (   valid_date(Today),
+        letter(EntryId, Title),
+        can_access(Person, EntryId, verbatim, Today, allow)
+    ->  Status = released
+    ;   eligible_future_release(Person, Title, Today)
+    ->  Status = not_yet
+    ;   Status = none
+    ).
+
+eligible_future_release(Person, Title, Today) :-
+    registered(Person),
+    death_triggered,
+    letter(EntryId, Title),
+    entry(EntryId, letter),
+    release(Person, Title, ReleaseDate),
+    valid_date(Today),
+    valid_date(ReleaseDate),
+    \+ explicit_deny(Person, EntryId, verbatim),
+    date_key(Today, TodayKey),
+    date_key(ReleaseDate, ReleaseKey),
+    TodayKey < ReleaseKey.
+
 valid_access_request(EntryId, Level, Today) :-
     memberchk(Level, [existence, summary, verbatim]),
     valid_date(Today),
@@ -200,6 +223,18 @@ evaluate_request(policy_request(Person), Decision) :-
         catch(can_modify_policy(Person), _, fail)
     ->  Decision = allow
     ;   Decision = deny
+    ).
+evaluate_request(letter_status_request(Person, Title, Today), Status) :-
+    !,
+    (   ground(letter_status_request(Person, Title, Today)),
+        atom(Person),
+        atom(Title),
+        valid_date(Today)
+    ->  (   catch(letter_status(Person, Title, Today, Result), _, fail)
+        ->  Status = Result
+        ;   Status = none
+        )
+    ;   Status = none
     ).
 evaluate_request(_, deny).
 

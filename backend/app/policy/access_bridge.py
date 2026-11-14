@@ -15,6 +15,7 @@ from .interpreter import interpret, quote_prolog_atom
 
 AccessLevel = Literal["existence", "summary", "verbatim"]
 AccessDecision = Literal["allow", "deny"]
+LetterStatus = Literal["released", "not_yet", "none"]
 EntryKind = Literal["diary", "letter"]
 
 _LOGGER = logging.getLogger(__name__)
@@ -68,6 +69,23 @@ class AccessRequest:
     today: date
 
 
+@dataclass(frozen=True, slots=True)
+class LetterStatusRequest:
+    """One Prolog query for a release rule and caller-supplied date."""
+
+    person: str
+    title: str
+    today: date
+
+
+@dataclass(frozen=True, slots=True)
+class AccessBatchResult:
+    """Decisions and letter statuses returned by one Prolog subprocess."""
+
+    decisions: tuple[AccessDecision, ...] = ()
+    letter_statuses: tuple[LetterStatus, ...] = ()
+
+
 class PrologAccessBridge:
     """Run batched access queries in an isolated SWI-Prolog subprocess."""
 
@@ -93,24 +111,77 @@ class PrologAccessBridge:
         requests: Sequence[AccessRequest],
     ) -> tuple[AccessDecision, ...]:
         """Evaluate a batch of access requests with one SWI-Prolog process."""
-        try:
-            request_items = tuple(requests)
-        except TypeError:
-            return ("deny",)
-        if not request_items:
-            return ()
+        return self.evaluate_many(
+            policy, app_facts, access_requests=requests
+        ).decisions
 
+    def evaluate_many(
+        self,
+        policy: Policy,
+        app_facts: AppFacts,
+        access_requests: Sequence[AccessRequest] = (),
+        letter_status_requests: Sequence[LetterStatusRequest] = (),
+    ) -> AccessBatchResult:
+        """Evaluate access and release-status requests in one batch process."""
+        try:
+            access_items = tuple(access_requests)
+            status_items = tuple(letter_status_requests)
+        except TypeError:
+            return AccessBatchResult(("deny",), ("none",))
+        if not access_items and not status_items:
+            return AccessBatchResult()
+
+        fallback_decisions: tuple[AccessDecision, ...] = ("deny",) * len(access_items)
+        fallback_statuses: tuple[LetterStatus, ...] = ("none",) * len(status_items)
         try:
             request_terms = tuple(
-                self._serialize_access_request(request) for request in request_items
+                self._serialize_access_request(request) for request in access_items
+            ) + tuple(
+                self._serialize_letter_status_request(request)
+                for request in status_items
             )
             input_terms = self._build_input_terms(
                 policy, app_facts, request_terms
             )
         except (AttributeError, TypeError, ValueError) as error:
-            _LOGGER.warning("Unable to serialize Prolog access request: %s", type(error).__name__)
-            return ("deny",) * len(request_items)
-        return self._run(input_terms, len(request_items))
+            _LOGGER.warning(
+                "Unable to serialize Prolog access batch: %s",
+                type(error).__name__,
+            )
+            return AccessBatchResult(fallback_decisions, fallback_statuses)
+
+        output_shapes = (
+            (frozenset(("allow", "deny")),) * len(access_items)
+            + (frozenset(("released", "not_yet", "none")),) * len(status_items)
+        )
+        fallback_values = (
+            tuple(fallback_decisions) + tuple(fallback_statuses)
+        )
+        values = self._run_values(input_terms, output_shapes, fallback_values)
+        decisions: tuple[AccessDecision, ...] = tuple(
+            "allow" if value == "allow" else "deny"
+            for value in values[: len(access_items)]
+        )
+        statuses: list[LetterStatus] = []
+        for value in values[len(access_items) :]:
+            if value == "released":
+                statuses.append("released")
+            elif value == "not_yet":
+                statuses.append("not_yet")
+            else:
+                statuses.append("none")
+        return AccessBatchResult(decisions, tuple(statuses))
+
+    def letter_status_many(
+        self,
+        policy: Policy,
+        app_facts: AppFacts,
+        requests: Sequence[LetterStatusRequest],
+    ) -> tuple[LetterStatus, ...]:
+        """Return batched Prolog letter statuses, failing closed to none."""
+        return self.evaluate_many(
+            policy, app_facts, letter_status_requests=requests
+        ).letter_statuses
 
     def can_modify_policy(self, person: str, app_facts: AppFacts) -> bool:
         """Ask Prolog whether policy changes are allowed under the frozen-policy fact."""
@@ -188,9 +259,34 @@ class PrologAccessBridge:
             f"date({request.today.year},{request.today.month},{request.today.day}))"
         )
 
+    @staticmethod
+    def _serialize_letter_status_request(request: LetterStatusRequest) -> str:
+        """Encode a release-status query as a whitelisted Prolog data term."""
+        if not isinstance(request, LetterStatusRequest):
+            raise TypeError("requests must contain LetterStatusRequest values.")
+        if not isinstance(request.today, date) or isinstance(request.today, datetime):
+            raise TypeError("request.today must be a date.")
+        return (
+            "letter_status_request("
+            f"{quote_prolog_atom(request.person.casefold())}, "
+            f"{quote_prolog_atom(request.title)}, "
+            f"date({request.today.year},{request.today.month},{request.today.day}))"
+        )
+
     def _run(self, input_terms: str, expected_results: int) -> tuple[AccessDecision, ...]:
         """Run one data-only Prolog request and validate its exact output shape."""
-        fallback: tuple[AccessDecision, ...] = ("deny",) * expected_results
+        fallback: tuple[str, ...] = ("deny",) * expected_results
+        allowed_outputs = (frozenset(("allow", "deny")),) * expected_results
+        values = self._run_values(input_terms, allowed_outputs, fallback)
+        return tuple("allow" if value == "allow" else "deny" for value in values)
+
+    def _run_values(
+        self,
+        input_terms: str,
+        allowed_outputs: tuple[frozenset[str], ...],
+        fallback: tuple[str, ...],
+    ) -> tuple[str, ...]:
+        """Run a batch and validate every output against its expected result type."""
         command = [
             self._executable,
             "-f",
@@ -231,22 +327,23 @@ class PrologAccessBridge:
             _LOGGER.warning("SWI-Prolog emitted diagnostics; denying the request.")
             return fallback
         decisions = result.stdout.splitlines()
-        if len(decisions) != expected_results or any(
-            decision not in ("allow", "deny") for decision in decisions
+        if len(decisions) != len(allowed_outputs) or any(
+            decision not in allowed
+            for decision, allowed in zip(decisions, allowed_outputs)
         ):
-            _LOGGER.warning("SWI-Prolog returned malformed decision output.")
+            _LOGGER.warning("SWI-Prolog returned malformed batch output.")
             return fallback
-        typed_decisions: list[AccessDecision] = []
-        for decision in decisions:
-            typed_decisions.append("allow" if decision == "allow" else "deny")
-        return tuple(typed_decisions)
+        return tuple(decisions)
 
 
 __all__ = [
+    "AccessBatchResult",
     "AccessDecision",
     "AccessLevel",
     "AccessRequest",
     "AppFacts",
     "EntryFact",
+    "LetterStatus",
+    "LetterStatusRequest",
     "PrologAccessBridge",
 ]

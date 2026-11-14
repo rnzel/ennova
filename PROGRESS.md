@@ -3,7 +3,7 @@
 > Team members: [Full name], [Full name], [Full name], [Full name], [Full name]
 > Course: CS 413 – Programming Languages Final Project
 
-**Current feature:** F6a – Entry store `[x]`
+**Current feature:** F7a – Grounded AI orchestration `[x]`
 **Rule:** one feature at a time. Finish, test, update this file, get approval, then move on.
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` blocked
@@ -92,15 +92,29 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - [ ] Tests: registration, login, bad credentials
 - **Paradigm:** Scripting (supporting feature)
 
-### F7 – Grounded AI Q&A (Scripting) `[ ]`
-- [ ] Authorized retrieval (Prolog check BEFORE search)
-- [ ] Tools: `search_entries`, `get_entry`, `count_mentions`, `get_letter`
-- [ ] Gemini integration (key on backend only)
-- [ ] System prompt + policy as instructions
-- [ ] Date citations; neutral reply for no-record and denied (identical)
+### F7 – Grounded AI Q&A (Scripting) `[~]`
+- [x] Authorized retrieval (Prolog check BEFORE search)
+- [x] Tools: `search_entries`, `get_entry`, `count_mentions`, `get_letter`
+- [ ] Gemini integration (key on backend only; no Gemini/API key used in F7a)
+- [x] System prompt; policy remains in Prolog/backend and is not sent to the model
+- [x] Date citations; neutral reply for no-record and denied (identical)
 - [ ] Design note: model, tools, instructions
-- [ ] Tests: Maria scenario (all 6 rows), prompt injection, AI unavailable, restricted entries never reach the model
+- [x] Tests: Maria scenario (all 6 rows), prompt injection, AI unavailable, restricted entries never reach the model
 - **Paradigm:** Scripting
+
+### F7a – Grounded AI orchestration `[x]`
+- [x] Add Prolog letter-status queries to the single batched F5 bridge call
+- [x] Add fixed-asker retrieval tools, stored derived summaries, citation verification, and a capped tool loop
+- [x] Verify entry integrity only after Prolog allows access; exclude tampered entries
+- [x] Add backend-only existence counts and matching pre-release date messages
+- [x] Keep denied and nonexistent entry responses identical; do not call the model when no entry is permitted
+- [x] Keep policy text out of model prompts; test that other protocols, deny rules, private tags, and other letter titles do not leak
+- [x] Cover the six Maria acceptance scenarios with scripted fake-model responses and required SWI-Prolog
+- **Paradigm:** Scripting orchestration with Logic-based authorization and Functional/immutable entry processing
+- **Files changed:** `backend/.env.example`, `backend/app/config.py`, `backend/app/policy/access_rules.pl`, `backend/app/policy/access_bridge.py`, `backend/app/policy/__init__.py`, `backend/app/ai/`, `backend/app/services/__init__.py`, `backend/app/services/grounded_qa.py`, `backend/tests/test_grounded_qa.py`, `PROGRESS.md`, `docs/ai-use-log.md`
+- **Tests:** `pytest -q tests/test_grounded_qa.py` (20 passed); `pytest -q` (107 passed); `git diff --check` passed
+- **Open issues:** Owner Q&A is not implemented. Live Gemini integration and the AI design note remain for a later approved F7 step; F7a uses only the scripted fake client and no API key.
+- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
 
 ### F8 – Typed exceptions and fallbacks `[x]`
 - [x] `EnnovaError` base with private detail, safe public message, and stable code
