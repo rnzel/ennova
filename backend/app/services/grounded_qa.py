@@ -2,6 +2,7 @@
 # Paradigm: Grounded AI orchestration and fail-closed service glue
 from __future__ import annotations
 
+import time
 from collections.abc import Mapping
 from datetime import date, datetime
 
@@ -55,6 +56,7 @@ from app.services.diary_service import DiaryService
 
 _LEVELS: tuple[AccessLevel, ...] = ("existence", "summary", "verbatim")
 _MAX_TOOL_STEPS = 5
+_DEFAULT_QUESTION_TIMEOUT_SECONDS = 45.0
 
 
 class GroundedQAService:
@@ -89,6 +91,15 @@ class GroundedQAService:
     ) -> GroundedResponse:
         """Answer one beneficiary question, failing closed on every error."""
         try:
+            timeout = getattr(
+                self._model_client,
+                "question_timeout_seconds",
+                _DEFAULT_QUESTION_TIMEOUT_SECONDS,
+            )
+            if not isinstance(timeout, (int, float)) or timeout <= 0:
+                raise AIServiceUnavailable(
+                    detail="invalid model question timeout"
+                )
             return self._answer(
                 question,
                 owner_id=owner_id,
@@ -96,6 +107,7 @@ class GroundedQAService:
                 policy_source=policy_source,
                 app_facts=app_facts,
                 today=today,
+                deadline_monotonic=time.monotonic() + timeout,
             )
         except AccessDenied:
             return GroundedResponse(NEUTRAL_REPLY)
@@ -120,6 +132,7 @@ class GroundedQAService:
         policy_source: str,
         app_facts: AppFacts,
         today: date,
+        deadline_monotonic: float,
     ) -> GroundedResponse:
         if not isinstance(question, str) or not question.strip():
             raise ValueError("question must be a non-empty string.")
@@ -132,13 +145,17 @@ class GroundedQAService:
             for record in records
             for level in _LEVELS
         )
-        letter_titles = tuple(
-            dict.fromkeys(
-                record.entry.title
-                for record in records
-                if isinstance(record.entry, LetterEntry)
-            )
+        entry_titles = tuple(
+            record.entry.title
+            for record in records
+            if isinstance(record.entry, LetterEntry)
         )
+        policy_titles = tuple(
+            statement.title
+            for statement in policy.statements
+            if isinstance(statement, ReleaseLetter)
+        )
+        letter_titles = tuple(dict.fromkeys(entry_titles + policy_titles))
         status_requests = tuple(
             LetterStatusRequest(asker, title, today) for title in letter_titles
         )
@@ -186,6 +203,8 @@ class GroundedQAService:
         )
         if date_message is not None:
             return GroundedResponse(date_message)
+        if self._letter_request_without_access(question, statuses):
+            return GroundedResponse(NEUTRAL_REPLY)
         if permitted_count == 0:
             return GroundedResponse(NEUTRAL_REPLY)
 
@@ -217,7 +236,7 @@ class GroundedQAService:
             release_dates=release_dates,
             summaries=self._summary_store,
         )
-        return self._run_tool_loop(question, context)
+        return self._run_tool_loop(question, context, deadline_monotonic)
 
     def _map_batch_results(
         self,
@@ -295,28 +314,51 @@ class GroundedQAService:
         folded_question = question.casefold()
         matched_titles = tuple(
             title
-            for title, status in statuses.items()
-            if status == "not_yet"
-            and title in release_dates
-            and title.casefold() in folded_question
+            for title in statuses
+            if title.casefold() in folded_question
         )
-        if len(matched_titles) != 1:
+        if (
+            len(matched_titles) != 1
+            or statuses[matched_titles[0]] != "not_yet"
+            or matched_titles[0] not in release_dates
+        ):
             return None
         release_date = release_dates[matched_titles[0]]
         return LETTER_NOT_YET_MESSAGE.format(release_date=release_date.isoformat())
 
+    @staticmethod
+    def _letter_request_without_access(
+        question: str,
+        statuses: Mapping[str, LetterStatus],
+    ) -> bool:
+        """Keep unavailable letter titles out of model prompts and tool calls."""
+        folded_question = question.casefold()
+        matched_titles = tuple(
+            title
+            for title in statuses
+            if title.casefold() in folded_question
+        )
+        if matched_titles:
+            return any(statuses[title] != "released" for title in matched_titles)
+        return "letter" in folded_question
+
     def _run_tool_loop(
-        self, question: str, context: ToolContext
+        self,
+        question: str,
+        context: ToolContext,
+        deadline_monotonic: float,
     ) -> GroundedResponse:
         messages = [PromptMessage("user", question)]
         presented_entries: dict[str, StoredEntry] = {}
         steps = 0
-
         while steps < self._max_tool_steps:
+            if time.monotonic() >= deadline_monotonic:
+                raise AIServiceUnavailable(detail="model question deadline exceeded")
             prompt = ModelPrompt(
                 SYSTEM_PROMPT,
                 tuple(messages),
                 TOOL_NAMES,
+                deadline_monotonic,
             )
             try:
                 response = self._model_client.complete(prompt)

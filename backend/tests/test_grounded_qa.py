@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import importlib
-from dataclasses import dataclass
+import json
+from dataclasses import dataclass, replace
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -20,7 +21,11 @@ from app.ai.summaries import (
 from app.ai.tools import ToolContext, search_entries
 from app.domain.diary import InMemoryEntryRepository, StoredEntry
 from app.domain.processing import PersonReference
-from app.errors import AIServiceUnavailable, TamperDetected
+from app.errors import (
+    ACCESS_DENIED_PUBLIC_MESSAGE,
+    AIServiceUnavailable,
+    TamperDetected,
+)
 from app.policy import (
     AppFacts,
     AccessRequest,
@@ -151,6 +156,28 @@ def _answer(
         app_facts=sample.app_facts,
         today=today,
     )
+
+
+def _response_bytes(response: GroundedResponse) -> bytes:
+    return json.dumps(
+        {
+            "text": response.text,
+            "citations": [
+                {
+                    "entry_id": citation.entry_id,
+                    "entry_date": citation.entry_date.isoformat(),
+                }
+                for citation in response.citations
+            ],
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+
+def test_neutral_reply_is_the_shared_f8_constant():
+    assert NEUTRAL_REPLY is ACCESS_DENIED_PUBLIC_MESSAGE
 
 
 def test_six_maria_scenarios_end_to_end_with_scripted_model(
@@ -393,6 +420,132 @@ def test_model_prompt_never_receives_other_protocols_or_deny_rules(
         assert private_policy_text not in recorded_prompt_text
 
 
+def test_unavailable_letter_titles_are_identical_and_never_reach_model(
+    grounded_sample: GroundedSample,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    sample = grounded_sample
+    people = (
+        PersonReference("beneficiary-maria", "Maria"),
+        PersonReference("beneficiary-nora", "Nora"),
+        PersonReference("beneficiary-roberto", "Roberto"),
+    )
+    roberto_letter = sample.service.add_letter_entry(
+        sample.owner_id,
+        "e_roberto_letter",
+        "A fictional private message for Roberto.",
+        "For my wife",
+        "Roberto",
+        datetime(2026, 11, 14, 14, tzinfo=timezone.utc),
+        people,
+    )
+    nora_letter = sample.service.add_letter_entry(
+        sample.owner_id,
+        "e_nora_letter",
+        "A fictional private message for Nora.",
+        "For my sister",
+        "Nora",
+        datetime(2026, 11, 14, 15, tzinfo=timezone.utc),
+        people,
+    )
+    records = sample.records + (roberto_letter, nora_letter)
+    app_facts = build_app_facts(
+        sample.owner_id,
+        records,
+        ("Maria", "Nora", "Roberto"),
+        death_triggered=True,
+        policy_frozen=True,
+    )
+    sample = replace(sample, records=records, app_facts=app_facts)
+    policy = (
+        "protocol maria:\n"
+        "    may see existence of entries mentioning maria\n"
+        '    may read summary of entries tagged "family"\n'
+        "protocol nora:\n"
+        "    may see existence of entries mentioning nora\n"
+        "protocol roberto:\n"
+        "    may see existence of entries mentioning roberto\n"
+        'release letter "To my daughter" to maria when date >= 2040-05-01\n'
+        'release letter "For my sister" to nora when date >= 2041-01-01\n'
+        'release letter "For my wife" to roberto when date >= 2042-06-07\n'
+    )
+
+    tool_results: list[object] = []
+    original_execute = GroundedQAService._execute_tool
+
+    def capture_tool_result(service, call, context):
+        result = original_execute(service, call, context)
+        tool_results.append(result)
+        return result
+
+    monkeypatch.setattr(
+        GroundedQAService, "_execute_tool", capture_tool_result
+    )
+    requests = (
+        ('Show me the letter titled "For my wife".', "For my wife"),
+        ('Show me the letter titled "No such letter".', "No such letter"),
+        ('Show me the letter titled "For my sister".', "For my sister"),
+    )
+    models: list[FakeModelClient] = []
+    responses: list[GroundedResponse] = []
+    for question, title in requests:
+        model = FakeModelClient(
+            (
+                ModelResponse(
+                    "",
+                    tool_calls=(ToolCall("get_letter", {"title": title}),),
+                ),
+            )
+        )
+        models.append(model)
+        responses.append(
+            _answer(
+                sample,
+                question,
+                model,
+                asker="maria",
+                policy_source=policy,
+                today=date(2040, 4, 30),
+            )
+        )
+
+    assert responses[0] == responses[1] == responses[2] == GroundedResponse(
+        NEUTRAL_REPLY
+    )
+    encoded_responses = tuple(_response_bytes(response) for response in responses)
+    assert encoded_responses[0] == encoded_responses[1] == encoded_responses[2]
+    assert all(model.prompts == [] for model in models)
+    assert tool_results == []
+
+    observed_output = "\n".join(
+        [
+            *(
+                prompt.system_prompt + "\n"
+                + "\n".join(message.content for message in prompt.messages)
+                for model in models
+                for prompt in model.prompts
+            ),
+            *(repr(result) for result in tool_results),
+            *(response.decode("utf-8") for response in encoded_responses),
+        ]
+    ).casefold()
+    assert "for my wife" not in observed_output
+    assert "2042-06-07" not in observed_output
+
+    control_model = FakeModelClient(())
+    own_letter = _answer(
+        sample,
+        'Show me the letter titled "To my daughter".',
+        control_model,
+        asker="maria",
+        policy_source=policy,
+        today=date(2040, 4, 30),
+    )
+    assert own_letter.text == "That letter will be available on 2040-05-01."
+    assert _response_bytes(own_letter) != encoded_responses[0]
+    assert control_model.prompts == []
+
+
 def test_denied_and_nonexistent_entry_responses_are_byte_identical(
     grounded_sample: GroundedSample,
 ):
@@ -435,6 +588,33 @@ def test_no_permitted_entry_means_no_model_call(
         asker="nora",
     )
     assert response == GroundedResponse(NEUTRAL_REPLY)
+    assert model.prompts == []
+
+
+def test_expired_question_budget_prevents_model_call(
+    grounded_sample: GroundedSample,
+):
+    model = FakeModelClient(
+        (
+            ModelResponse(
+                "A permitted answer.",
+                citation_ids=("e_family",),
+            ),
+        )
+    )
+    model.question_timeout_seconds = 0.000001
+
+    with pytest.raises(AIServiceUnavailable):
+        _answer(
+            grounded_sample,
+            "What did he write about family?",
+            model,
+            policy_source=(
+                "protocol maria:\n"
+                '    may read summary of entries tagged "family"\n'
+            ),
+        )
+
     assert model.prompts == []
 
 
