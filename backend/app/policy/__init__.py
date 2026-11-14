@@ -14,12 +14,25 @@ from .ast_nodes import (
     TransferCustody,
     Trustee,
 )
-from .interpreter import interpret
+from .access_bridge import (
+    AccessDecision,
+    AccessLevel,
+    AccessRequest,
+    AppFacts,
+    EntryFact,
+    PrologAccessBridge,
+)
+from .interpreter import interpret, quote_prolog_atom
 from .lexer import Token, TokenKind, lex
 from .parser import Parser, parse
 
 __all__ = [
+    "AccessDecision",
+    "AccessLevel",
+    "AccessRequest",
+    "AppFacts",
     "DefaultWritingMode",
+    "EntryFact",
     "MayNotRead",
     "MayNotSeeExistence",
     "MayRead",
@@ -27,6 +40,7 @@ __all__ = [
     "MentioningSelector",
     "Parser",
     "Policy",
+    "PrologAccessBridge",
     "ProtocolBlock",
     "ReleaseLetter",
     "TaggedSelector",
@@ -37,4 +51,5 @@ __all__ = [
     "interpret",
     "lex",
     "parse",
+    "quote_prolog_atom",
 ]

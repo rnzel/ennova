@@ -3,7 +3,7 @@
 > Team members: [Full name], [Full name], [Full name], [Full name], [Full name]
 > Course: CS 413 – Programming Languages Final Project
 
-**Current feature:** F4 – Policy language `[x]`
+**Current feature:** F5 – Prolog access rules `[x]`
 **Rule:** one feature at a time. Finish, test, update this file, get approval, then move on.
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` blocked
@@ -74,12 +74,16 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Open issues:** None for F4. Access hierarchy, deny precedence, registration, and death-trigger facts remain in F5.
 - **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
 
-### F5 – Prolog access rules (Logic) `[ ]`
-- [ ] `access_rules.pl`: deny by default, deny beats allow, hierarchy, release dates, registered check, frozen policy
-- [ ] Python <-> Prolog bridge (Python only asks, never decides)
-- [ ] Access test table (asker, entry, expected result)
-- [ ] Tests: allow, deny, conflict, release date, unregistered, missing protocol, frozen
+### F5 – Prolog access rules (Logic) `[x]`
+- [x] `access_rules.pl`: deny by default, deny beats allow, hierarchy, release dates, registered check, frozen policy
+- [x] Python <-> Prolog bridge (Python only asks, never decides)
+- [x] Access test table (asker, entry, expected result)
+- [x] Tests: allow, deny, conflict, release date, unregistered, missing protocol, frozen
 - **Paradigm:** Logic
+- **Files changed:** `backend/app/policy/access_rules.pl`, `backend/app/policy/access_bridge.py`, `backend/app/policy/__init__.py`, `backend/app/policy/interpreter.py`, `backend/tests/test_prolog_access.py`, `docs/access-test-table.md`
+- **Tests:** `pytest -q tests/test_prolog_access.py` (18 passed); `pytest -q tests` (59 passed); live batched SWI-Prolog check returned `allow, deny, allow, deny`; `git diff --check` passed
+- **Open issues:** `can_modify_policy/1` enforces frozen-state in Prolog; owner authentication remains the app boundary's responsibility because no owner fact is part of the specified F5 vocabulary.
+- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
 
 ### F6 – Accounts and registration `[ ]`
 - [ ] Register / login with hashed password and JWT
