@@ -16,6 +16,7 @@ class BaseConfig:
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///ennova.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     AIVEN_CA_PATH = os.getenv("AIVEN_CA_PATH", "")
+    SWIPL_EXECUTABLE = os.getenv("SWIPL_EXECUTABLE", "swipl")
 
 
 def get_database_connect_args():
