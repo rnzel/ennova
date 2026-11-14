@@ -2,8 +2,6 @@
 # Paradigm: Logic programming / Prolog access-rule tests
 from __future__ import annotations
 
-import os
-import shutil
 import subprocess
 from dataclasses import replace
 from datetime import date
@@ -73,24 +71,6 @@ ACTIVE_FACTS = AppFacts(
     ),
     letters=(("e_letter", "To my daughter"),),
 )
-
-
-@pytest.fixture(scope="session")
-def swipl_executable() -> str:
-    """Find SWI-Prolog or fail the test suite because F5 requires it."""
-    configured = os.getenv("SWIPL_EXECUTABLE")
-    if configured:
-        executable = shutil.which(configured) or configured
-        if Path(executable).is_file():
-            return executable
-    discovered = shutil.which("swipl")
-    if discovered:
-        return discovered
-    program_files = Path(os.getenv("ProgramFiles", r"C:\Program Files"))
-    windows_executable = program_files / "swipl" / "bin" / "swipl.exe"
-    if windows_executable.is_file():
-        return str(windows_executable)
-    pytest.fail("SWI-Prolog is required for F5 tests but was not found.")
 
 
 @pytest.fixture
