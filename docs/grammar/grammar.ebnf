@@ -1,0 +1,48 @@
+(* ENNOVA (Alaala) – Team members: [Full name] – Front End; [Full name] – Back End; [Full name] – Q/A; [Full name] – UI/UX Designer; [Full name] – Documentator
+   Paradigm: Language design / EBNF for backend/app/policy/parser.py *)
+
+program                  = { NEWLINE | top_level_line }, EOF ;
+top_level_line           = protocol_block
+                         | trustee_statement, NEWLINE
+                         | global_statement, NEWLINE ;
+
+protocol_block           = "protocol", identifier, ":", NEWLINE,
+                           [ INDENT, protocol_line, { NEWLINE, protocol_line },
+                             NEWLINE, DEDENT ] ;
+protocol_line            = grant_statement | deny_statement ;
+grant_statement          = may_see_statement | may_read_statement ;
+deny_statement           = may_not_see_statement | may_not_read_statement ;
+
+may_see_statement        = "may", "see", "existence", "of", selector ;
+may_read_statement       = "may", "read", access_level, "of", selector ;
+may_not_see_statement    = "may", "not", "see", "existence", "of", selector ;
+may_not_read_statement   = "may", "not", "read", access_level, "of", selector ;
+access_level             = "summary" | "verbatim" ;
+
+selector                 = mentioning_selector | tagged_selector ;
+mentioning_selector      = "entries", "mentioning", identifier ;
+tagged_selector          = "entries", "tagged", STRING ;
+
+global_statement         = release_statement
+                         | custody_statement
+                         | default_mode_statement ;
+release_statement        = "release", "letter", STRING, "to", identifier,
+                           "when", "date", ">=", DATE ;
+custody_statement        = "transfer", "custody", "to", identifier,
+                           "if", "trustee", "unavailable", "for", INTEGER, "days" ;
+trustee_statement        = "trustee", "is", identifier ;
+default_mode_statement   = "default", "writing", "mode", ":", writing_mode ;
+writing_mode             = "verbatim" | "light_fix" | "review" ;
+
+identifier               = IDENT ;
+IDENT                    = ? [a-z][a-z0-9_]*, excluding reserved words ? ;
+STRING                   = ? JSON-style double-quoted string; escapes are decoded ? ;
+DATE                     = ? four-digit year, two-digit month and day; valid calendar date ? ;
+INTEGER                  = ? one or more decimal digits ? ;
+INDENT                   = ? exactly four leading spaces before a protocol line ? ;
+DEDENT                   = ? return from one indentation level to column one ? ;
+NEWLINE                  = ? physical source-line ending; final newline is optional ? ;
+EOF                      = ? end of source ? ;
+
+(* Blank lines are ignored. Tabs and indentation other than zero or four spaces
+   are rejected. An empty protocol block is a protocol header without INDENT. *)

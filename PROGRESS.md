@@ -3,7 +3,7 @@
 > Team members: [Full name], [Full name], [Full name], [Full name], [Full name]
 > Course: CS 413 – Programming Languages Final Project
 
-**Current feature:** F2 – Entry processing `[x]`
+**Current feature:** F4 – Policy language `[x]`
 **Rule:** one feature at a time. Finish, test, update this file, get approval, then move on.
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` blocked
@@ -61,14 +61,18 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - [ ] Tests: original unchanged, polymorphic dispatch
 - **Paradigm:** Object-oriented
 
-### F4 – Policy language (Language design) `[ ]`
-- [ ] EBNF grammar (`grammar.ebnf`) + at least 3 sample programs
-- [ ] Lexer
-- [ ] Recursive-descent parser with `PolicySyntaxError` (line/column, readable message)
-- [ ] Interpreter producing Prolog facts
-- [ ] Statements: may see, may read, release letter, transfer custody, default writing mode (+ `trustee is`)
-- [ ] Parser tests: valid and invalid
+### F4 – Policy language (Language design) `[x]`
+- [x] EBNF grammar (`grammar.ebnf`) + at least 3 sample programs
+- [x] Lexer
+- [x] Recursive-descent parser with `PolicySyntaxError` (line/column, readable message)
+- [x] Interpreter producing Prolog facts
+- [x] Statements: may see, may read/deny, release letter, transfer custody, default writing mode (+ optional top-level `trustee is`)
+- [x] Parser tests: valid and invalid
 - **Paradigm:** Language design
+- **Files changed:** `backend/app/errors/__init__.py`, `backend/app/errors/policy_syntax.py`, `backend/app/policy/__init__.py`, `backend/app/policy/ast_nodes.py`, `backend/app/policy/lexer.py`, `backend/app/policy/parser.py`, `backend/app/policy/interpreter.py`, `backend/tests/test_policy_language.py`, `docs/grammar/grammar.ebnf`, `docs/grammar/policy-to-facts.md`, `docs/grammar/sample_*.policy`, `docs/grammar/invalid_*.policy`
+- **Tests:** `pytest -q tests/test_policy_language.py` (20 passed); `pytest -q tests` (41 passed); SWI-Prolog accepted generated escaped facts
+- **Open issues:** None for F4. Access hierarchy, deny precedence, registration, and death-trigger facts remain in F5.
+- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
 
 ### F5 – Prolog access rules (Logic) `[ ]`
 - [ ] `access_rules.pl`: deny by default, deny beats allow, hierarchy, release dates, registered check, frozen policy

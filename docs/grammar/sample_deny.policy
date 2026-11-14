@@ -1,0 +1,5 @@
+trustee is adam
+protocol maria:
+    may not see existence of entries mentioning lola
+    may not read summary of entries tagged "Private"
+    may not read verbatim of entries tagged "Secrets"
