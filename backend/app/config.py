@@ -17,8 +17,6 @@ class BaseConfig:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     AIVEN_CA_PATH = os.getenv("AIVEN_CA_PATH", "")
     SWIPL_EXECUTABLE = os.getenv("SWIPL_EXECUTABLE", "swipl")
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-    GEMINI_MODEL = os.getenv("GEMINI_MODEL")
     LLM_PROVIDER = os.getenv("LLM_PROVIDER")
     OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
     OLLAMA_MODEL = os.getenv("OLLAMA_MODEL")

@@ -9,14 +9,12 @@ from .client import (
     ToolCall,
 )
 from .citations import Citation, GroundedResponse
-from .gemini import GeminiClient
+from .model_summaries import ModelSummarizer
 from .ollama import OllamaClient
 from .provider import create_model_client
 from .summaries import (
     FakeSummarizer,
-    GeminiSummarizer,
     InMemorySummaryStore,
-    OllamaSummarizer,
     SummaryArtifact,
     SummaryStore,
     Summarizer,
@@ -27,15 +25,13 @@ __all__ = [
     "Citation",
     "FakeModelClient",
     "FakeSummarizer",
-    "GeminiClient",
-    "GeminiSummarizer",
     "GroundedResponse",
     "InMemorySummaryStore",
     "ModelClient",
     "ModelPrompt",
     "ModelResponse",
+    "ModelSummarizer",
     "OllamaClient",
-    "OllamaSummarizer",
     "PromptMessage",
     "SummaryArtifact",
     "SummaryStore",
