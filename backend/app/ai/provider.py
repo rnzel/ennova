@@ -25,10 +25,6 @@ def create_model_client(
         from app.ai.ollama import OllamaClient
 
         return OllamaClient()
-    if selected == "gemini":
-        from app.ai.gemini import GeminiClient
-
-        return GeminiClient()
     raise AIServiceUnavailable(detail="LLM_PROVIDER is not configured")
 
 

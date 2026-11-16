@@ -3,7 +3,7 @@
 > Team members: [Full name], [Full name], [Full name], [Full name], [Full name]
 > Course: CS 413 – Programming Languages Final Project
 
-**Current feature:** F7c – Ollama integration `[x]`
+**Current feature:** F7d – Ollama-only provider `[x]`
 **Rule:** one feature at a time. Finish, test, update this file, get approval, then move on.
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` blocked
@@ -150,6 +150,19 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Open issues:** Live Ollama behavior is not established by mocked tests; no live provider call was made.
 - **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
 
+### F7d – Ollama-only provider `[x]`
+- [x] Remove Gemini client, SDK dependency, and Gemini configuration
+- [x] Restrict `LLM_PROVIDER` to `ollama` and `fake`, failing closed otherwise
+- [x] Move shared model summarization, digest binding, and eight-word overlap check into provider-neutral `ModelSummarizer`
+- [x] Preserve logging-canary privacy assertions in Ollama tests
+- [x] Update AI design and project instructions to describe Ollama
+- [x] Run the full test suite and `git diff --check`
+- **Paradigm:** Scripting adapter with provider-neutral model-backed summary generation
+- **Files changed:** `.github/copilot-instructions.md`, `backend/requirements.txt`, `backend/.env.example`, `backend/app/config.py`, `backend/app/ai/gemini.py` (deleted), `backend/app/ai/__init__.py`, `backend/app/ai/provider.py`, `backend/app/ai/summaries.py`, `backend/app/ai/model_summaries.py`, `backend/tests/test_gemini.py` (deleted), `backend/tests/test_ollama.py`, `backend/tests/test_model_summaries.py`, `docs/ai-design-note.md`, `docs/ai-use-log.md`, `PROGRESS.md`
+- **Tests:** `pytest -q` (145 passed, 1 skipped); `git diff --check` passed
+- **Open issues:** None known; live model behavior remains outside mocked-test coverage.
+- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
+
 ### F8 – Typed exceptions and fallbacks `[x]`
 - [x] `EnnovaError` base with private detail, safe public message, and stable code
 - [x] `AccessDenied`, `AmbiguousName`, `TamperDetected`, `PolicyFrozen`, `AIServiceUnavailable`, and `PolicySyntaxError`
@@ -248,6 +261,7 @@ Device trust, recovery codes, password reset, full trustee verification workflow
 | 2026-11-12 | Entries never move to heir's account | Beneficiaries only get permitted answers |
 | 2026-11-12 | Start a NEW project (no existing code) | Clean foundation; TLS configured correctly from the start; mobile app postponed until instructor approves |
 | 2026-11-12 | Git + GitHub with feature branches and reviewed PRs | Handout requires version control; PR reviewer doubles as AI-code verifier |
+| 2026-11-16 | AI provider = Ollama or fake; remove Gemini | Keep provider behavior local and optional for tests/demos while retaining one provider-neutral `ModelClient` interface |
 
 ## Weekly log
 | Week | What was done | Next |

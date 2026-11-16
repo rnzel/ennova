@@ -1,11 +1,11 @@
 # ENNOVA (Alaala) – Copilot Instructions
 
 > Team members (must appear on every submitted file):
-> 1. [Full name] – Front End
-> 2. [Full name] – Back End
-> 3. [Full name] – Q/A
-> 4. [Full name] – UI/UX Designer
-> 5. [Full name] – Documentator
+> 1. Roldan Jr. Bazares – Front End
+> 2. Ranzel Jay Gobris – Lead Developer
+> 3. Bart Jayson Lola – Q/A
+> 4. Jallil Sultan – UI/UX Designer
+> 5. Jezelle Gabion – Documentator
 
 ## 1. What this project is
 
@@ -86,9 +86,10 @@ Selectors: `entries mentioning <name>` and `entries tagged "<tag>"` (one `select
 - Biometrics are an optional later extra (app lock only), not core. No device trust, recovery codes, or password reset (state this in the design report).
 
 ### AI (Model + Tools + Instructions, documented separately)
-- **Model:** Google Gemini via the Python SDK. API key stays on the backend only.
+- **Model:** Local Ollama through its chat API. `OLLAMA_HOST` defaults to loopback; remote hosts require explicit opt-in. The model name comes from `OLLAMA_MODEL`.
+- **Provider selection:** `LLM_PROVIDER` accepts only `ollama` or `fake`. Missing or invalid values fail closed. The fake client is for tests and scripted demos.
 - **Tools:** `search_entries`, `get_entry`, `count_mentions`, `get_letter`. Every tool runs the Prolog check internally and returns only permitted data.
-- **Instructions:** system prompt (answer only from provided entries, cite dates, never claim to be the owner, say so when there is no record) plus the owner's compiled policy.
+- **Instructions:** Ollama receives a system prompt (answer only from provided entries, cite dates, never claim to be the owner, say so when there is no record). The owner's compiled policy stays in Prolog and is not sent to the model.
 - The model NEVER touches the database or vault directly. Filter by permission BEFORE any search or ranking.
 - **Neutral reply rule:** "no permitted record" and "records exist but denied" must produce the identical reply (same text, same shape). Never confirm or deny that restricted entries exist.
 - Existence access is the only case that reveals a count, and the backend computes it, not the model.
@@ -115,7 +116,7 @@ Turn this table into automated tests early.
 - **Backend:** Python, Flask, Flask-SQLAlchemy, Flask-Migrate (Alembic), PyMySQL, JWT, REST + JSON.
 - **Database:** Aiven MySQL 8.4 (the owner's own database, NOT `defaultdb`), TLS required. MySQL is the source of truth.
 - **Logic:** SWI-Prolog with Python integration.
-- **AI:** Google Gemini API.
+- **AI:** Local Ollama chat API; `fake` is available for tests and scripted demos.
 - **Mobile (later feature):** Expo React Native, TypeScript, Expo Router, Expo SecureStore.
 - **Tests:** pytest.
 
@@ -199,7 +200,7 @@ The project is kept under Git and hosted on GitHub (required deliverable: source
 - Private uploads, local databases, generated semantic indexes (e.g. ChromaDB data), logs.
 - Any real person's diary or personal data. Fictional data only.
 
-If a secret is committed by accident: **rotate the secret immediately** (new Aiven password, new Gemini key). Deleting the file in a later commit does not remove it from history.
+If a secret is committed by accident: **rotate the secret immediately** (for example, the Aiven password or any configured provider credential). Deleting the file in a later commit does not remove it from history.
 
 ### Recommended `.gitignore` entries
 ```
