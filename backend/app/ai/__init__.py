@@ -10,10 +10,13 @@ from .client import (
 )
 from .citations import Citation, GroundedResponse
 from .gemini import GeminiClient
+from .ollama import OllamaClient
+from .provider import create_model_client
 from .summaries import (
     FakeSummarizer,
     GeminiSummarizer,
     InMemorySummaryStore,
+    OllamaSummarizer,
     SummaryArtifact,
     SummaryStore,
     Summarizer,
@@ -31,10 +34,13 @@ __all__ = [
     "ModelClient",
     "ModelPrompt",
     "ModelResponse",
+    "OllamaClient",
+    "OllamaSummarizer",
     "PromptMessage",
     "SummaryArtifact",
     "SummaryStore",
     "Summarizer",
     "ToolCall",
+    "create_model_client",
     "store_derived_summary",
 ]

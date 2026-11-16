@@ -108,6 +108,25 @@ def test_missing_key_fails_before_sdk_client_creation(
     assert calls == []
 
 
+def test_missing_model_fails_before_sdk_client_creation(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("GEMINI_API_KEY", "configured-test-key")
+    monkeypatch.delenv("GEMINI_MODEL", raising=False)
+    monkeypatch.setattr("app.ai.gemini.app_config.BaseConfig.GEMINI_MODEL", None)
+    calls: list[object] = []
+    monkeypatch.setattr(
+        "app.ai.gemini.genai.Client",
+        lambda **kwargs: calls.append(kwargs),
+    )
+
+    with pytest.raises(AIServiceUnavailable) as error:
+        GeminiClient()
+
+    assert error.value.detail["code"] == "model_not_configured"
+    assert calls == []
+
+
 def test_environment_config_and_sdk_transport_options(
     monkeypatch: pytest.MonkeyPatch,
 ):
@@ -258,6 +277,7 @@ def test_client_error_is_not_retried_and_sensitive_details_are_not_logged(
     )
     client = GeminiClient(
         api_key=key,
+        model="configured-test-model",
         sdk_client=SimpleNamespace(interactions=interactions),
     )
 
@@ -289,6 +309,7 @@ def test_sdk_error_canary_is_not_exposed_and_logs_once_to_project_logger(
     interactions = FakeInteractions((FakeAPIError(400, sdk_error_text),))
     client = GeminiClient(
         api_key=canaries[0],
+        model="configured-test-model",
         sdk_client=SimpleNamespace(interactions=interactions),
     )
 

@@ -3,7 +3,7 @@
 > Team members: [Full name], [Full name], [Full name], [Full name], [Full name]
 > Course: CS 413 – Programming Languages Final Project
 
-**Current feature:** F7b – Gemini integration `[x]`
+**Current feature:** F7c – Ollama integration `[x]`
 **Rule:** one feature at a time. Finish, test, update this file, get approval, then move on.
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` blocked
@@ -132,6 +132,22 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Files changed:** `backend/requirements.txt`, `backend/.env.example`, `backend/app/config.py`, `backend/app/ai/__init__.py`, `backend/app/ai/client.py`, `backend/app/ai/gemini.py`, `backend/app/ai/summaries.py`, `backend/app/ai/tools.py`, `backend/app/policy/access_rules.pl`, `backend/app/services/diary_service.py`, `backend/app/services/grounded_qa.py`, `backend/tests/test_gemini.py`, `backend/tests/test_grounded_qa.py`, `backend/tests/test_entry_store.py`, `docs/ai-design-note.md`, `PROGRESS.md`, `docs/ai-use-log.md`
 - **Tests:** `pytest -q tests/test_entry_store.py tests/test_prolog_access.py tests/test_grounded_qa.py` (52 passed); `pytest -q` (128 passed, 1 skipped); `git diff --check` passed
 - **Open issues:** `access_rules.pl` keys letter releases by person and title, not entry ID; it now denies all entries when multiple IDs share a title, including duplicate facts supplied outside `DiaryService`. The supported write path also rejects same-owner duplicate titles. The live Gemini test was skipped because `RUN_LIVE_AI_TESTS` was not enabled; no API key or real provider request was used. Fake and mocked tests do not establish live model behavior. Owner Q&A remains unimplemented.
+- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
+
+### F7c – Ollama integration `[x]`
+- [x] Add an Ollama `/api/chat` adapter with schema-only manual tools and strict JSON output
+- [x] Require configured provider/model selection; no model identifier defaults in code or `.env.example`
+- [x] Restrict Ollama to loopback unless `OLLAMA_ALLOW_REMOTE=1`; ignore proxies and reject redirects
+- [x] Configure context size, conservatively estimate full request size, and fail closed before any possible truncation
+- [x] Set explicit temperature, output-token and response-byte caps, streaming off, and connect/read timeouts within the question deadline
+- [x] Map failures to `AIServiceUnavailable`; log only exception class and code
+- [x] Add Ollama-backed summary adapter reusing digest binding and the eight-consecutive-word copy check
+- [x] Add mocked offline provider, transport, tool, summarizer, and privacy tests; gate live safety test behind `RUN_LIVE_AI_TESTS=1`
+- [x] Document provider selection, mock-test limitations, and the local-model quality trade-off
+- **Paradigm:** Scripting adapter with Prolog-authorized tool orchestration and digest-bound derived summaries
+- **Files changed:** `backend/.env.example`, `backend/app/config.py`, `backend/app/ai/__init__.py`, `backend/app/ai/gemini.py`, `backend/app/ai/ollama.py`, `backend/app/ai/provider.py`, `backend/app/ai/summaries.py`, `backend/tests/test_gemini.py`, `backend/tests/test_ollama.py`, `backend/tests/test_grounded_qa.py`, `docs/ai-design-note.md`, `docs/ai-use-log.md`, `PROGRESS.md`
+- **Tests:** `pytest -q tests/test_ollama.py tests/test_gemini.py tests/test_grounded_qa.py` (71 passed, 2 skipped); `pytest -q` (159 passed, 2 skipped); `git diff --check` passed
+- **Open issues:** Live Ollama behavior is not established by mocked tests; no live provider call was made.
 - **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
 
 ### F8 – Typed exceptions and fallbacks `[x]`

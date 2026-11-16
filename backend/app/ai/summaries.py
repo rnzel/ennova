@@ -59,7 +59,7 @@ class FakeSummarizer:
         return " ".join(parts) if parts else "No indexed topics or names."
 
 
-class GeminiSummarizer:
+class _ModelSummarizer:
     """Create quote-resistant summaries at write time using a model client."""
 
     def __init__(self, model_client: ModelClient) -> None:
@@ -122,6 +122,14 @@ class GeminiSummarizer:
                     "substantially different phrasing."
                 )
         return None
+
+
+class GeminiSummarizer(_ModelSummarizer):
+    """Create summaries with a configured Gemini-compatible model client."""
+
+
+class OllamaSummarizer(_ModelSummarizer):
+    """Create summaries with the configured Ollama model client."""
 
 
 class InMemorySummaryStore:
