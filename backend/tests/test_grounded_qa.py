@@ -824,6 +824,32 @@ def test_unknown_and_malformed_tool_calls_are_ignored(
     assert response == GroundedResponse(NEUTRAL_REPLY)
 
 
+def test_model_cannot_override_the_asker_in_tool_arguments(
+    grounded_sample: GroundedSample,
+):
+    model = FakeModelClient(
+        (
+            ModelResponse(
+                "Unverified answer.",
+                citation_ids=("e_letter",),
+                tool_calls=(
+                    ToolCall(
+                        "get_letter",
+                        {"title": "To my daughter", "asker": "nora"},
+                    ),
+                ),
+            ),
+        )
+    )
+
+    response = _answer(
+        grounded_sample, "What happened in the family?", model, asker="maria"
+    )
+
+    assert response == GroundedResponse(NEUTRAL_REPLY)
+    assert len(model.prompts) == 1
+
+
 def test_malformed_citation_list_fails_with_typed_ai_error(
     grounded_sample: GroundedSample,
 ):

@@ -110,11 +110,20 @@ class GeminiClient:
             or max_attempts < 1
         ):
             raise ValueError("timeouts must be positive and attempts at least one.")
-        self._model = (
+        configured_model = (
             model
-            or os.getenv("GEMINI_MODEL")
-            or app_config.BaseConfig.GEMINI_MODEL
+            if model is not None
+            else os.getenv("GEMINI_MODEL", app_config.BaseConfig.GEMINI_MODEL)
         )
+        if not isinstance(configured_model, str) or not configured_model.strip():
+            _log_failure_class("ConfigurationError", "model_not_configured")
+            raise AIServiceUnavailable(
+                detail={
+                    "exception_class": "ConfigurationError",
+                    "code": "model_not_configured",
+                }
+            )
+        self._model = configured_model.strip()
         self._request_timeout_seconds = request_timeout_seconds
         self._max_attempts = max_attempts
         self.question_timeout_seconds = question_timeout_seconds
