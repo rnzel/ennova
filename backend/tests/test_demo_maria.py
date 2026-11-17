@@ -1,0 +1,256 @@
+# ENNOVA (Alaala) – Team members: Roldan Jr. Bazares – Front End; Ranzel Jay Gobris – Lead Developer; Bart Jayson Lola – Q/A; Jallil Sultan – UI/UX Designer; Jezelle Gabion – Documentator
+# Paradigm: Scripting safety tests for the Maria demonstration
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+import time
+from datetime import date, datetime, timezone
+from pathlib import Path
+
+import pytest
+
+from app.ai.client import ModelPrompt, ModelResponse, PromptMessage, ToolCall
+from app.errors import AIServiceUnavailable
+from app.ai.prompts import NEUTRAL_REPLY
+from app.ai.summaries import FakeSummarizer, InMemorySummaryStore, store_derived_summary
+from app.domain.diary import InMemoryEntryRepository
+from app.domain.processing import PersonReference
+from app.policy import PrologAccessBridge
+from app.services.access_facts import build_app_facts
+from app.services.diary_service import DiaryService
+from app.services.grounded_qa import GroundedQAService
+from scripts.demo_maria import OWNER_ID, POLICY_PATH, build_fixture
+
+ROOT = Path(__file__).parents[2]
+SCRIPT = ROOT / "backend" / "scripts" / "demo_maria.py"
+
+
+def _run_script(*args: str, provider: str = "fake") -> subprocess.CompletedProcess[str]:
+    environment = os.environ.copy()
+    environment["LLM_PROVIDER"] = provider
+    environment.pop("OLLAMA_MODEL", None)
+    return subprocess.run(
+        [sys.executable, str(SCRIPT), *args],
+        cwd=ROOT / "backend",
+        env=environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
+def test_fake_script_runs_rows_and_keeps_restricted_canary_out():
+    result = _run_script()
+    assert result.returncode == 0
+    assert "Provider: SCRIPTED (fake model)" in result.stdout
+    assert "2040-04-30" in result.stdout
+    assert "2040-05-01" in result.stdout
+    assert "CANARY-RESTRICTED-7f3a" not in result.stdout + result.stderr
+    assert result.stdout.count("Reply: " + NEUTRAL_REPLY) >= 2
+
+
+def test_fake_letter_row_changes_with_custom_date():
+    before = _run_script("--today", "2040-04-30")
+    after = _run_script("--today", "2040-05-01")
+    assert before.returncode == after.returncode == 0
+    assert "That letter will be available on 2040-05-01." in before.stdout
+    assert "My dearest daughter" in after.stdout
+
+
+def test_fake_rows_business_and_nora_are_byte_identical_at_response_boundary():
+    sample = build_fixture()
+    bridge = PrologAccessBridge(_swipl_for_test(), timeout_seconds=5.0)
+    policy = POLICY_PATH.read_text(encoding="utf-8")
+    from app.ai.client import FakeModelClient
+    from app.ai.citations import GroundedResponse
+
+    responses = []
+    for asker, question in (("maria", "What did he think about his business?"), ("nora", "What is in the diary?")):
+        response = GroundedQAService(
+            sample.service, bridge, FakeModelClient(()), sample.summaries
+        ).answer(
+            question,
+            owner_id=OWNER_ID,
+            asker=asker,
+            policy_source=policy,
+            app_facts=sample.app_facts,
+            today=date(2040, 5, 1),
+        )
+        responses.append(response)
+    assert responses[0] == responses[1] == GroundedResponse(NEUTRAL_REPLY)
+
+
+def test_invalid_date_is_rejected_without_traceback_or_path():
+    result = _run_script("--today", "not-a-date")
+    assert result.returncode != 0
+    assert result.stderr.strip() == "Invalid date: use YYYY-MM-DD."
+    assert "Traceback" not in result.stderr
+    assert str(SCRIPT) not in result.stderr
+
+
+def test_failing_provider_prints_only_public_message():
+    result = _run_script(provider="not-a-provider")
+    assert result.returncode != 0
+    assert result.stdout == ""
+    assert result.stderr.strip() == "The AI service is temporarily unavailable."
+    assert "LLM_PROVIDER" not in result.stderr
+
+
+def test_unavailable_row_continues_and_verbose_error_is_safe():
+    result = _run_script(
+        "--ask",
+        "Tell me an unrelated fact.",
+    )
+    assert result.returncode != 0
+    assert "Reply: unavailable" in result.stdout
+    assert "AIServiceUnavailable" not in result.stdout
+    assert "Tell me an unrelated fact." in result.stdout
+    assert "Traceback" not in result.stdout + result.stderr
+
+    verbose = _run_script(
+        "--ask",
+        "Tell me an unrelated fact.",
+        "--verbose-errors",
+    )
+    assert verbose.returncode != 0
+    assert "Reply: unavailable" in verbose.stdout
+    assert "Model calls: 1" in verbose.stdout
+    assert "Provider failure: AIServiceUnavailable ai_service_unavailable" in (
+        verbose.stdout
+    )
+    assert "unrelated fact" not in verbose.stdout.split(
+        "Provider failure:", 1
+    )[1]
+    assert "Traceback" not in verbose.stdout + verbose.stderr
+
+
+def test_ollama_timeout_configuration_is_bounded(monkeypatch: pytest.MonkeyPatch):
+    from app.ai.ollama import OllamaClient
+    monkeypatch.setattr(
+        "app.config.BaseConfig.OLLAMA_REQUEST_TIMEOUT_SECONDS", "7"
+    )
+    monkeypatch.setattr(
+        "app.config.BaseConfig.OLLAMA_QUESTION_TIMEOUT_SECONDS", "11"
+    )
+    client = OllamaClient(model="configured-test-model")
+    assert client.question_timeout_seconds == 11
+    assert client._read_timeout_seconds == 7
+
+    monkeypatch.setattr(
+        "app.config.BaseConfig.OLLAMA_QUESTION_TIMEOUT_SECONDS", "301"
+    )
+    with pytest.raises(AIServiceUnavailable):
+        OllamaClient(model="configured-test-model")
+
+
+def _swipl_for_test() -> str:
+    import shutil
+
+    executable = shutil.which("swipl")
+    if executable is None:
+        pytest.skip("SWI-Prolog is not installed")
+    return executable
+
+
+@pytest.mark.skipif(
+    os.getenv("RUN_LIVE_AI_TESTS") != "1",
+    reason="live AI tests require RUN_LIVE_AI_TESTS=1",
+)
+def test_live_maria_rows_are_safe_with_fake_summaries(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    sample = build_fixture()
+    people = (
+        PersonReference("beneficiary-maria", "Maria"),
+        PersonReference("beneficiary-nora", "Nora"),
+    )
+    restricted = sample.service.add_diary_entry(
+        OWNER_ID,
+        "e_restricted",
+        "CANARY-RESTRICTED-7f3a private details. #CANARY-RESTRICTED-7f3a",
+        datetime(2026, 11, 14, 14, tzinfo=timezone.utc),
+        people,
+    )
+    records = sample.records + (restricted,)
+    summaries = InMemorySummaryStore()
+    for record in records:
+        store_derived_summary(record, FakeSummarizer(), summaries)
+    facts = build_app_facts(
+        OWNER_ID,
+        records,
+        ("Maria", "Nora"),
+        death_triggered=True,
+        policy_frozen=True,
+    )
+    from app.ai.provider import create_model_client
+
+    model = create_model_client()
+    warmup_started = time.monotonic()
+    try:
+        model.complete(
+            ModelPrompt(
+                "Reply with OK only.",
+                (PromptMessage("user", "OK"),),
+                (),
+            )
+        )
+    except AIServiceUnavailable:
+        pytest.skip("Live Ollama warm-up was unavailable.")
+    print(
+        f"Live Ollama warm-up load time: "
+        f"{time.monotonic() - warmup_started:.3f}s"
+    )
+    service = GroundedQAService(
+        sample.service,
+        PrologAccessBridge(_swipl_for_test(), timeout_seconds=5.0),
+        model,
+        summaries,
+    )
+    policy = POLICY_PATH.read_text(encoding="utf-8")
+    permitted_ids = {"e_maria", "e_family", "e_family_2", "e_letter"}
+    questions = (
+        "Did he ever write about me?",
+        "What did he write about family?",
+        "Show me the letter to my daughter",
+        "Show me the letter to my daughter",
+        "What did he think about his business?",
+        "What is in the diary?",
+    )
+    dates = (
+        date(2040, 5, 1),
+        date(2040, 5, 1),
+        date(2040, 4, 30),
+        date(2040, 5, 1),
+        date(2040, 5, 1),
+        date(2040, 5, 1),
+    )
+    outputs = []
+    unavailable = 0
+    for question, today in zip(questions, dates):
+        asker = "nora" if question == "What is in the diary?" else "maria"
+        try:
+            response = service.answer(
+                question,
+                owner_id=OWNER_ID,
+                asker=asker,
+                policy_source=policy,
+                app_facts=facts,
+                today=today,
+            )
+        except AIServiceUnavailable:
+            unavailable += 1
+            outputs.append(None)
+            continue
+        outputs.append(response)
+        assert "CANARY-RESTRICTED-7f3a" not in response.text
+        assert all(citation.entry_id in permitted_ids for citation in response.citations)
+    if unavailable == len(questions):
+        pytest.skip("All live Ollama Maria rows were unavailable.")
+    if outputs[4] is not None:
+        assert outputs[4].text == NEUTRAL_REPLY
+    if outputs[5] is not None:
+        assert outputs[5].text == NEUTRAL_REPLY
+    assert "CANARY-RESTRICTED-7f3a" not in repr(outputs)

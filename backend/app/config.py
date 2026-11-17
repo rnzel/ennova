@@ -1,15 +1,9 @@
-# ENNOVA (Alaala) – Team members: [Full name] – Front End; [Full name] – Back End; [Full name] – Q/A; [Full name] – UI/UX Designer; [Full name] – Documentator
+# ENNOVA (Alaala) – Team members: Roldan Jr. Bazares – Front End; Ranzel Jay Gobris – Lead Developer; Bart Jayson Lola – Q/A; Jallil Sultan – UI/UX Designer; Jezelle Gabion – Documentator
 # Paradigm: Infrastructure / configuration
 from __future__ import annotations
 
 import os
 from pathlib import Path
-
-from dotenv import load_dotenv
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")
-
 
 class BaseConfig:
     SECRET_KEY = os.getenv("SECRET_KEY", "change-me")
@@ -23,6 +17,12 @@ class BaseConfig:
     OLLAMA_ALLOW_REMOTE = os.getenv("OLLAMA_ALLOW_REMOTE") == "1"
     OLLAMA_NUM_CTX = os.getenv("OLLAMA_NUM_CTX", "8192")
     OLLAMA_MAX_OUTPUT_TOKENS = os.getenv("OLLAMA_MAX_OUTPUT_TOKENS", "512")
+    OLLAMA_REQUEST_TIMEOUT_SECONDS = os.getenv(
+        "OLLAMA_REQUEST_TIMEOUT_SECONDS", "30"
+    )
+    OLLAMA_QUESTION_TIMEOUT_SECONDS = os.getenv(
+        "OLLAMA_QUESTION_TIMEOUT_SECONDS", "45"
+    )
     OLLAMA_CONNECT_TIMEOUT_SECONDS = os.getenv(
         "OLLAMA_CONNECT_TIMEOUT_SECONDS", "15"
     )

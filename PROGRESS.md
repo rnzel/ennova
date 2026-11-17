@@ -3,7 +3,7 @@
 > Team members: [Full name], [Full name], [Full name], [Full name], [Full name]
 > Course: CS 413 – Programming Languages Final Project
 
-**Current feature:** F7d – Ollama-only provider `[x]`
+**Current feature:** F7e – Maria command-line demo `[x]`
 **Rule:** one feature at a time. Finish, test, update this file, get approval, then move on.
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` blocked
@@ -162,6 +162,22 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Tests:** `pytest -q` (145 passed, 1 skipped); `git diff --check` passed
 - **Open issues:** None known; live model behavior remains outside mocked-test coverage.
 - **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
+
+### F7e – Maria command-line demo `[x]`
+- [x] Add a safe CLI for the six handout rows using the fictional Lola fixture and sample policy
+- [x] Support `ollama` and scripted `fake` providers, date override, asker override, and one red-team question
+- [x] Keep provider failures, missing SWI-Prolog, and invalid dates to one-line public errors
+- [x] Add focused fake-provider tests and an opt-in live Ollama safety test with a restricted canary
+- [x] Configure bounded Ollama request/question deadlines and warm up the model before timed rows
+- [x] Continue after unavailable rows, support `--verbose-errors`, and defer the non-zero exit until completion
+- [x] Report per-row model-call counts, estimator sizes, call timings, and safe provider failure details
+- [x] Report tool names, argument validity, permitted/neutral result flags, and repeated request counts
+- [x] Run the full suite and complete teammate verification
+- **Paradigm:** Scripting orchestration with Prolog authorization
+- **Files changed:** `backend/.env.example`, `backend/app/config.py`, `backend/app/ai/ollama.py`, `backend/scripts/demo_maria.py`, `backend/tests/test_demo_maria.py`, `PROGRESS.md`, `docs/ai-design-note.md`, `docs/ai-use-log.md`
+- **Tests:** Focused Ollama/demo tests: 6 passed, 2 skipped; full suite: 150 passed, 4 skipped; `git diff --check` passed
+- **Open issues:** Live test requires `RUN_LIVE_AI_TESTS=1`, configured Ollama, model, and SWI-Prolog.
+- **Known issue:** Live Ollama (`llama3.2:3b`, CPU-only) rows time out. Measured cause: the small model sends invalid tool arguments and repeats them until the deadline. The two backend-built rows (release-date message, neutral reply) work live. Planned fixes if time allows: answer count and date questions directly from the backend, stop on repeated invalid calls, or try a larger model.
 
 ### F8 – Typed exceptions and fallbacks `[x]`
 - [x] `EnnovaError` base with private detail, safe public message, and stable code

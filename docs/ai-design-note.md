@@ -6,7 +6,7 @@ Team members: [Full name] – Front End; [Full name] – Back End; [Full name] �
 
 ENNOVA selects its model client through `LLM_PROVIDER`. The only accepted values are `ollama` and `fake`; an unset or invalid value fails closed with `AIServiceUnavailable`. The fake client is deterministic and is intended for tests and scripted demos.
 
-The Ollama client uses the local `/api/chat` endpoint via Python's standard-library HTTP client. `OLLAMA_HOST` defaults to `http://localhost:11434`; other hosts require `OLLAMA_ALLOW_REMOTE=1`. `OLLAMA_MODEL` is required and is never hardcoded. Requests bypass system proxies, do not follow redirects, and enforce configured context, output, timeout, response-size, and total-question-deadline limits. Prompt sizing fails closed rather than dropping the system prompt or allowing truncation. Responses use Ollama's structured JSON option and are rejected if they do not match the exact answer schema.
+The Ollama client uses the local `/api/chat` endpoint via Python's standard-library HTTP client. `OLLAMA_HOST` defaults to `http://localhost:11434`; other hosts require `OLLAMA_ALLOW_REMOTE=1`. `OLLAMA_MODEL` is required and is never hardcoded. Requests bypass system proxies, do not follow redirects, and enforce configured context, output, response-size, per-request timeout, and total-question-deadline limits. Request and question timeout settings have safe defaults and hard upper bounds. Prompt sizing fails closed rather than dropping the system prompt or allowing truncation. Responses use Ollama's structured JSON option and are rejected if they do not match the exact answer schema.
 
 The provider-neutral `ModelSummarizer` accepts any `ModelClient`. It frames original entries as escaped, delimited untrusted data and retries once if the summary contains eight consecutive words copied from the original. A repeated overlap or provider failure stores no summary. Successful summaries are separate from the append-only hash chain and bound to the source entry digest; retrieval omits summaries whose digest no longer matches.
 
@@ -29,6 +29,10 @@ Denied and nonexistent records follow the same neutral response path. No model c
 Fake-model and mocked-transport tests verify application behavior, request construction, strict response parsing, timeout and response-size limits, host restrictions, error redaction, data-flow restrictions, and fail-closed handling. They do **not** prove that a live Ollama model will follow instructions, return valid structured output, produce accurate answers or summaries, resist every prompt injection, or meet real hardware latency and availability targets. The eight-word check detects only one kind of close copying.
 
 The live Ollama safety test runs only when `RUN_LIVE_AI_TESTS=1`, uses fictional text, and checks safety properties such as citation allowlisting and not claiming to be the owner. It is not part of the normal offline suite and does not establish comprehensive model safety.
+
+## What we would change
+
+Live Ollama (`llama3.2:3b`, CPU-only) rows time out on slow hardware. Measurements show the small model sends invalid tool arguments and repeats them until the deadline; this is a model-quality and latency limitation, not an authorization failure. The two backend-built rows (release-date message and neutral reply) work live. If time allows, we would answer count and date questions directly in the backend, stop on repeated invalid calls, or try a larger model.
 
 ## Official references
 
