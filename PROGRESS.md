@@ -3,7 +3,7 @@
 > Team members: [Full name], [Full name], [Full name], [Full name], [Full name]
 > Course: CS 413 – Programming Languages Final Project
 
-**Current feature:** F3 – Writing modes `[x]`
+**Current feature:** F6 – Accounts and registration `[x]`
 **Rule:** one feature at a time. Finish, test, update this file, get approval, then move on.
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` blocked
@@ -93,11 +93,16 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
 
 ### F6 – Accounts and registration `[ ]`
-- [ ] Register / login with hashed password and JWT
-- [ ] `registered/1` fact for Prolog
-- [ ] Owner-issued invitation code for beneficiaries
-- [ ] Tests: registration, login, bad credentials
+- [x] Register / login with normalized password hashing and required-claim JWTs
+- [x] `registered_person_ids` output for Prolog facts
+- [x] Owner-issued, hashed, expiring, single-use invitation codes
+- [x] Escalating per-username login delay with generic failures
+- [x] Tests: registration, login, bad credentials, lockout, invitation privacy, and Prolog integration
 - **Paradigm:** Scripting (supporting feature)
+- **Files changed:** `backend/requirements.txt`, `backend/.env.example`, `backend/app/config.py`, `backend/app/errors/`, `backend/app/policy/lexer.py`, `backend/app/domain/accounts/`, `backend/app/services/auth_service.py`, `backend/tests/test_accounts.py`
+- **Tests:** `pytest -q tests/test_accounts.py` (15 passed); full suite `pytest -q` (181 passed, 4 skipped); `git diff --check` passed
+- **Open issues:** No HTTP routes, refresh tokens, password reset, or database repository are included by design. PyJWT is pinned to 2.15.1 (released 2026-09-28); the disputed CVE-2025-45768 concern for 2.10.1 is mitigated here by enforcing a 32-byte JWT secret.
+- **Verified by:** review pending
 
 ### F7 – Grounded AI Q&A (Scripting) `[~]`
 - [x] Authorized retrieval (Prolog check BEFORE search)

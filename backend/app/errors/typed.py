@@ -83,3 +83,27 @@ class UnknownWritingMode(EnnovaError, ValueError):
             "The requested writing mode is not available.",
             detail=detail,
         )
+
+
+class AuthenticationError(EnnovaError):
+    """Raised when authentication cannot safely complete."""
+
+    def __init__(self, detail: object | None = None) -> None:
+        """Create a generic authentication error with private detail."""
+        super().__init__(
+            "authentication_error",
+            "Authentication failed.",
+            detail=detail,
+        )
+
+
+class InvalidBeneficiaryError(EnnovaError):
+    """Raised when beneficiary registration cannot safely complete."""
+
+    def __init__(self, detail: object | None = None) -> None:
+        """Create one generic invitation failure for every redemption failure."""
+        super().__init__(
+            "invalid_beneficiary",
+            "Beneficiary registration failed.",
+            detail=detail,
+        )

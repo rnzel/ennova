@@ -12,6 +12,8 @@ from .typed import (
     AIServiceUnavailable,
     AccessDenied,
     AmbiguousName,
+    AuthenticationError,
+    InvalidBeneficiaryError,
     PolicyFrozen,
     TamperDetected,
     UnknownWritingMode,
@@ -22,6 +24,7 @@ __all__ = [
     "AIServiceUnavailable",
     "AccessDenied",
     "AmbiguousName",
+    "AuthenticationError",
     "EnnovaError",
     "GENERIC_ERROR_CODE",
     "GENERIC_PUBLIC_MESSAGE",
@@ -30,4 +33,5 @@ __all__ = [
     "TamperDetected",
     "to_public_response",
     "UnknownWritingMode",
+    "InvalidBeneficiaryError",
 ]
