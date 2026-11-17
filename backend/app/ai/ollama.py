@@ -86,6 +86,8 @@ _RESPONSE_SCHEMA: dict[str, object] = {
 }
 _MAX_READ_CHUNK = 16_384
 _CONTEXT_SAFETY_TOKENS = 128
+_MAX_REQUEST_TIMEOUT_SECONDS = 120.0
+_MAX_QUESTION_TIMEOUT_SECONDS = 300.0
 
 
 class _Response(Protocol):
@@ -132,10 +134,11 @@ class OllamaClient:
         allow_remote: bool | None = None,
         num_ctx: int | str | None = None,
         max_output_tokens: int | str | None = None,
+        request_timeout_seconds: float | str | None = None,
         connect_timeout_seconds: float | str | None = None,
         read_timeout_seconds: float | str | None = None,
         max_response_bytes: int | str | None = None,
-        question_timeout_seconds: float = 45.0,
+        question_timeout_seconds: float | str | None = None,
         connection_factory: Callable[..., _Connection] | None = None,
     ) -> None:
         """Create a client from backend configuration without logging its data."""
@@ -185,6 +188,13 @@ class OllamaClient:
                 else max_response_bytes,
                 "invalid_response_limit",
             )
+            request_timeout = _bounded_positive_float(
+                app_config.BaseConfig.OLLAMA_REQUEST_TIMEOUT_SECONDS
+                if request_timeout_seconds is None
+                else request_timeout_seconds,
+                "invalid_request_timeout",
+                _MAX_REQUEST_TIMEOUT_SECONDS,
+            )
             connect_timeout = _positive_float(
                 app_config.BaseConfig.OLLAMA_CONNECT_TIMEOUT_SECONDS
                 if connect_timeout_seconds is None
@@ -192,13 +202,21 @@ class OllamaClient:
                 "invalid_connect_timeout",
             )
             read_timeout = _positive_float(
-                app_config.BaseConfig.OLLAMA_READ_TIMEOUT_SECONDS
+                request_timeout
                 if read_timeout_seconds is None
                 else read_timeout_seconds,
                 "invalid_read_timeout",
             )
-            question_timeout = _positive_float(
-                question_timeout_seconds, "invalid_question_timeout"
+            if read_timeout > _MAX_REQUEST_TIMEOUT_SECONDS:
+                raise _ProviderFailure(
+                    "ConfigurationError", "invalid_read_timeout"
+                )
+            question_timeout = _bounded_positive_float(
+                app_config.BaseConfig.OLLAMA_QUESTION_TIMEOUT_SECONDS
+                if question_timeout_seconds is None
+                else question_timeout_seconds,
+                "invalid_question_timeout",
+                _MAX_QUESTION_TIMEOUT_SECONDS,
             )
             if parsed_output_cap + _CONTEXT_SAFETY_TOKENS >= parsed_num_ctx:
                 raise _ProviderFailure(
@@ -455,6 +473,15 @@ def _positive_float(value: object, failure_code: str) -> float:
     except (TypeError, ValueError):
         raise _ProviderFailure("ConfigurationError", failure_code) from None
     if not math.isfinite(parsed) or parsed <= 0:
+        raise _ProviderFailure("ConfigurationError", failure_code)
+    return parsed
+
+
+def _bounded_positive_float(
+    value: object, failure_code: str, maximum: float
+) -> float:
+    parsed = _positive_float(value, failure_code)
+    if parsed > maximum:
         raise _ProviderFailure("ConfigurationError", failure_code)
     return parsed
 

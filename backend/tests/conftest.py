@@ -1,10 +1,15 @@
-# ENNOVA (Alaala) – Team members: [Full name] – Front End; [Full name] – Back End; [Full name] – Q/A; [Full name] – UI/UX Designer; [Full name] – Documentator
+# ENNOVA (Alaala) – Team members: Roldan Jr. Bazares – Front End; Ranzel Jay Gobris – Lead Developer; Bart Jayson Lola – Q/A; Jallil Sultan – UI/UX Designer; Jezelle Gabion – Documentator
 # Paradigm: Required test infrastructure for SWI-Prolog integration
 import os
 import shutil
 from pathlib import Path
 
 import pytest
+
+if os.getenv("RUN_LIVE_AI_TESTS") == "1":
+    from dotenv import load_dotenv
+
+    load_dotenv(Path(__file__).parents[1] / ".env")
 
 
 @pytest.fixture(scope="session")
