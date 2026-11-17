@@ -14,6 +14,7 @@ from .typed import (
     AmbiguousName,
     PolicyFrozen,
     TamperDetected,
+    UnknownWritingMode,
 )
 
 __all__ = [
@@ -28,4 +29,5 @@ __all__ = [
     "PolicySyntaxError",
     "TamperDetected",
     "to_public_response",
+    "UnknownWritingMode",
 ]

@@ -71,3 +71,15 @@ class AIServiceUnavailable(EnnovaError):
             "The AI service is temporarily unavailable.",
             detail=detail,
         )
+
+
+class UnknownWritingMode(EnnovaError, ValueError):
+    """Raised when a policy names a writing mode that is not registered."""
+
+    def __init__(self, detail: object | None = None) -> None:
+        """Create a safe unknown-mode error without exposing the mode name."""
+        super().__init__(
+            "unknown_writing_mode",
+            "The requested writing mode is not available.",
+            detail=detail,
+        )

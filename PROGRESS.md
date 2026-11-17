@@ -3,7 +3,7 @@
 > Team members: [Full name], [Full name], [Full name], [Full name], [Full name]
 > Course: CS 413 – Programming Languages Final Project
 
-**Current feature:** F7e – Maria command-line demo `[x]`
+**Current feature:** F3 – Writing modes `[x]`
 **Rule:** one feature at a time. Finish, test, update this file, get approval, then move on.
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` blocked
@@ -55,11 +55,18 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Open issues:** None for F2. `correct` intentionally uses caller-supplied immutable correction rules; safe boundary fallbacks are handled in F8.
 - **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
 
-### F3 – Writing modes (OOP) `[ ]`
-- [ ] Abstract `WritingMode`, plus `Verbatim`, `LightFix`, `Review`
-- [ ] Derived versions linked to the original; original never changed
-- [ ] Tests: original unchanged, polymorphic dispatch
+### F3 – Writing modes (OOP) `[x]`
+- [x] Abstract `WritingMode`, plus `Verbatim`, `LightFix`, `Review`
+- [x] Derived versions linked to the original; original never changed
+- [x] Registry and policy resolver with safe Verbatim fallback
+- [x] Append-only derived-version store with digest staleness checks
+- [x] Review suggestions use fixed immutable records and rule-based detection
+- [x] Tests cover source preservation, polymorphic dispatch, policy defaults, storage, and F7 boundaries
 - **Paradigm:** Object-oriented
+- **Files changed:** `backend/app/domain/writing_modes/`, `backend/app/errors/typed.py`, `backend/app/errors/__init__.py`, `backend/tests/test_writing_modes.py`
+- **Tests:** `pytest -q tests/test_writing_modes.py` (16 passed); full suite `pytest -q` (166 passed, 4 skipped); `git diff --check` passed
+- **Open issues:** None known for F3. The derived-version store is intentionally in-memory until persistence is designed.
+- **Verified by:** review pending
 
 ### F4 – Policy language (Language design) `[x]`
 - [x] EBNF grammar (`grammar.ebnf`) + at least 3 sample programs
