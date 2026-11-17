@@ -71,8 +71,10 @@ _KEYWORDS = frozenset(
         "review",
     }
 )
+POLICY_RESERVED_WORDS = _KEYWORDS
 _IDENTIFIER_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 _LOWER_IDENTIFIER_RE = re.compile(r"[a-z][a-z0-9_]*")
+POLICY_IDENT_RE = _LOWER_IDENTIFIER_RE
 _DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 _INTEGER_RE = re.compile(r"\d+")
 _INDENT_WIDTH = 4
