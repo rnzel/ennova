@@ -1,4 +1,4 @@
-# ENNOVA (Alaala) – Team members: Roldan Jr. Bazares – Front End; Ranzel Jay Gobris – Lead Developer; Bart Jayson Lola – Q/A; Jallil Sultan – UI/UX Designer; Jezelle Gabion – Documentator
+# ENNOVA (Alaala) – Team members: Roldan Jr. Bazares – Front End; Ranzel Jay Gobris – Back End; Bart Jayson Lola – Q/A; Jallil Sultan – UI/UX Designer; Jezelle Gabion – Documentator
 # Paradigm: Scripting authentication orchestration over a repository
 from __future__ import annotations
 
@@ -191,6 +191,49 @@ class AuthService:
         self._repository.mark_invitation_used(matched)
         return account
 
+    def redeem_invitation(
+        self, invitation_code: str, username: str, password: str
+    ) -> UserAccount:
+        """Redeem an invitation using only its stored owner and person IDs."""
+        normalized_username = normalize_username(username)
+        normalized_password = normalize_password(password)
+        self._reject_username_password_match(
+            normalized_username, normalized_password
+        )
+        presented_hash = self._hash_invitation(invitation_code)
+        matched = self._repository.find_invitation(presented_hash)
+        now = self._now()
+        owner_id = matched.owner_id if matched is not None else ""
+        owner = self._repository.get_by_account_id(owner_id)
+        person_id = matched.person_id if matched is not None else ""
+        already_registered = bool(
+            person_id
+            and self._repository.get_by_person_id(owner_id, person_id)
+        )
+        password_hash = generate_password_hash(normalized_password)
+        valid = bool(
+            matched is not None
+            and owner is not None
+            and owner.role is AccountRole.OWNER
+            and not matched.used
+            and matched.expires_at > now
+            and not already_registered
+        )
+        if not valid:
+            raise InvalidBeneficiaryError({"reason": "invitation_rejected"})
+        account_id = secrets.token_urlsafe(24)
+        account = UserAccount(
+            account_id,
+            normalized_username,
+            owner_id,
+            person_id,
+            AccountRole.BENEFICIARY,
+            password_hash,
+        )
+        self._repository.add_user(account)
+        self._repository.mark_invitation_used(matched)
+        return account
+
     def login(self, username: str, password: str) -> str:
         """Authenticate with an escalating-delay, generic failure path."""
         normalized_username = normalize_username(username)
@@ -249,6 +292,38 @@ class AuthService:
         if account is None:
             raise AuthenticationError({"reason": "account_missing"})
         return account
+
+    def verify_trigger(
+        self, account: UserAccount, password: str, phrase: str, expected: str
+    ) -> None:
+        """Verify trigger credentials with the same delay state as login."""
+        now = self._now()
+        failures, available_at = self._login_failures.get(
+            account.username, (0, now)
+        )
+        try:
+            normalized = normalize_password(password)
+            password_matches = check_password_hash(
+                account.password_hash, normalized
+            )
+        except (TypeError, ValueError):
+            password_matches = False
+        phrase_matches = (
+            isinstance(phrase, str)
+            and hmac.compare_digest(phrase, expected)
+        )
+        if now < available_at or not password_matches or not phrase_matches:
+            next_failures = failures + 1
+            delay = min(
+                LOGIN_DELAY_BASE_SECONDS * (2 ** (next_failures - 1)),
+                LOGIN_DELAY_MAX_SECONDS,
+            )
+            self._login_failures[account.username] = (
+                next_failures,
+                now + timedelta(seconds=delay),
+            )
+            raise AuthenticationError({"reason": "trigger_rejected"})
+        self._login_failures.pop(account.username, None)
 
     def registered_person_ids(self, owner_id: str) -> tuple[str, ...]:
         """Return casefolded registered person IDs, never beneficiary usernames."""

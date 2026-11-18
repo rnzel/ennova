@@ -3,7 +3,7 @@
 > Team members: [Full name], [Full name], [Full name], [Full name], [Full name]
 > Course: CS 413 – Programming Languages Final Project
 
-**Current feature:** F6 – Accounts and registration `[x]`
+**Current feature:** F9a – REST API `[x]`
 **Rule:** one feature at a time. Finish, test, update this file, get approval, then move on.
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` blocked
@@ -215,10 +215,19 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Open issues:** The in-memory append is not thread-safe. A database repository must atomically read the last hash and insert the next record. Release dates are policy data, not `LetterEntry.release_date`; full-chain verification remains explicit and must follow access authorization.
 - **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
 
-### F9 – REST API `[ ]`
-- [ ] Endpoints: auth, entries, writing modes, policy, ask-AI
-- [ ] Safe error responses (no stack traces or secrets)
-- [ ] Integration tests
+### F9a – REST API `[x]`
+- [x] Thin Flask blueprints for authentication, invitations, entries, policy, death trigger, and grounded Q&A
+- [x] Bearer JWT authentication with account re-read and role enforcement
+- [x] In-memory policy versions, trigger state, and secret-free audit records
+- [x] JSON-only requests, body/entry/question limits, generic errors, security headers, and Flask-Limiter
+- [x] Entry save followed by best-effort derived summarization
+- [x] Configurable injected clock and timezone-aware Prolog date handling
+- [x] End-to-end Maria HTTP scenario and provider-absent startup tests
+- **Paradigm:** Scripting HTTP orchestration over OOP repositories, F4 parsing, and F5/F7 services
+- **Files changed:** `backend/app/__init__.py`, `backend/app/config.py`, `backend/app/routes/`, `backend/app/services/api_state.py`, `backend/app/services/auth_service.py`, `backend/app/domain/accounts/repository.py`, `backend/app/errors/`, `backend/requirements.txt`, `backend/.env.example`, `backend/tests/test_api.py`, `README.md`, `PROGRESS.md`, `docs/ai-use-log.md`
+- **Tests:** `pytest -q tests/test_api.py tests/test_accounts.py` (23 passed); full suite `pytest -q` (189 passed, 4 skipped); `git diff --check` passed
+- **Open issues:** The owner `/ask` route returns the neutral reply until Prolog exposes an `owner/1` fact. API state and rate-limit storage are process-local; a multi-worker deployment needs shared persistence/storage. No MySQL, CORS, or mobile work was added.
+- **Verified by:** review pending
 
 ### F10 – Letter of Wishes `[ ]`
 - [ ] Letter entries with recipient and release date
