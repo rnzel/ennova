@@ -107,3 +107,11 @@ class InvalidBeneficiaryError(EnnovaError):
             "Beneficiary registration failed.",
             detail=detail,
         )
+
+
+class ConflictError(EnnovaError):
+    """Raised when an append-only resource identity already exists."""
+
+    def __init__(self, detail: object | None = None) -> None:
+        """Create a generic conflict response."""
+        super().__init__("conflict", "The requested resource already exists.", detail)

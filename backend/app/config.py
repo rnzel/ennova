@@ -1,4 +1,4 @@
-# ENNOVA (Alaala) – Team members: Roldan Jr. Bazares – Front End; Ranzel Jay Gobris – Lead Developer; Bart Jayson Lola – Q/A; Jallil Sultan – UI/UX Designer; Jezelle Gabion – Documentator
+# ENNOVA (Alaala) – Team members: Roldan Jr. Bazares – Front End; Ranzel Jay Gobris – Back End; Bart Jayson Lola – Q/A; Jallil Sultan – UI/UX Designer; Jezelle Gabion – Documentator
 # Paradigm: Infrastructure / configuration
 from __future__ import annotations
 
@@ -8,6 +8,8 @@ from pathlib import Path
 class BaseConfig:
     SECRET_KEY = os.getenv("SECRET_KEY", "change-me")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+    APP_TIMEZONE = os.getenv("APP_TIMEZONE", "UTC")
+    MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", "1048576"))
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///ennova.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     AIVEN_CA_PATH = os.getenv("AIVEN_CA_PATH", "")

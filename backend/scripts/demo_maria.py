@@ -1,4 +1,4 @@
-# ENNOVA (Alaala) – Team members: Roldan Jr. Bazares – Front End; Ranzel Jay Gobris – Lead Developer; Bart Jayson Lola – Q/A; Jallil Sultan – UI/UX Designer; Jezelle Gabion – Documentator
+# ENNOVA (Alaala) – Team members: Roldan Jr. Bazares – Front End; Ranzel Jay Gobris – Back End; Bart Jayson Lola – Q/A; Jallil Sultan – UI/UX Designer; Jezelle Gabion – Documentator
 # Paradigm: Scripting orchestration with Prolog-authorized grounded answers
 """Run the handout's Maria acceptance questions against the fictional fixture."""
 from __future__ import annotations

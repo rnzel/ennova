@@ -27,10 +27,16 @@ ROOT = Path(__file__).parents[2]
 SCRIPT = ROOT / "backend" / "scripts" / "demo_maria.py"
 
 
-def _run_script(*args: str, provider: str = "fake") -> subprocess.CompletedProcess[str]:
+def _run_script(
+    *args: str,
+    provider: str = "fake",
+    swipl_executable: str | None = None,
+) -> subprocess.CompletedProcess[str]:
     environment = os.environ.copy()
     environment["LLM_PROVIDER"] = provider
     environment.pop("OLLAMA_MODEL", None)
+    if swipl_executable is not None:
+        environment["SWIPL_EXECUTABLE"] = swipl_executable
     return subprocess.run(
         [sys.executable, str(SCRIPT), *args],
         cwd=ROOT / "backend",
@@ -41,8 +47,8 @@ def _run_script(*args: str, provider: str = "fake") -> subprocess.CompletedProce
     )
 
 
-def test_fake_script_runs_rows_and_keeps_restricted_canary_out():
-    result = _run_script()
+def test_fake_script_runs_rows_and_keeps_restricted_canary_out(swipl_executable):
+    result = _run_script(swipl_executable=swipl_executable)
     assert result.returncode == 0
     assert "Provider: SCRIPTED (fake model)" in result.stdout
     assert "2040-04-30" in result.stdout
@@ -51,25 +57,45 @@ def test_fake_script_runs_rows_and_keeps_restricted_canary_out():
     assert result.stdout.count("Reply: " + NEUTRAL_REPLY) >= 2
 
 
-def test_fake_letter_row_changes_with_custom_date():
-    before = _run_script("--today", "2040-04-30")
-    after = _run_script("--today", "2040-05-01")
+def test_fake_letter_row_changes_with_custom_date(swipl_executable):
+    before = _run_script("--today", "2040-04-30", swipl_executable=swipl_executable)
+    after = _run_script("--today", "2040-05-01", swipl_executable=swipl_executable)
     assert before.returncode == after.returncode == 0
     assert "That letter will be available on 2040-05-01." in before.stdout
     assert "My dearest daughter" in after.stdout
 
 
-def test_fake_rows_business_and_nora_are_byte_identical_at_response_boundary():
+def test_fake_rows_business_and_nora_are_byte_identical_at_response_boundary(
+    swipl_executable,
+):
     sample = build_fixture()
-    bridge = PrologAccessBridge(_swipl_for_test(), timeout_seconds=5.0)
+    bridge = PrologAccessBridge(swipl_executable, timeout_seconds=5.0)
     policy = POLICY_PATH.read_text(encoding="utf-8")
     from app.ai.client import FakeModelClient
     from app.ai.citations import GroundedResponse
 
+    business_model = FakeModelClient(
+        (
+            ModelResponse(
+                "",
+                tool_calls=(
+                    ToolCall("get_entry", {"entry_id": "e_business"}),
+                ),
+            ),
+        )
+    )
+    nora_model = FakeModelClient(())
     responses = []
-    for asker, question in (("maria", "What did he think about his business?"), ("nora", "What is in the diary?")):
+    for asker, question, model in (
+        (
+            "maria",
+            "What did he think about his business?",
+            business_model,
+        ),
+        ("nora", "What is in the diary?", nora_model),
+    ):
         response = GroundedQAService(
-            sample.service, bridge, FakeModelClient(()), sample.summaries
+            sample.service, bridge, model, sample.summaries
         ).answer(
             question,
             owner_id=OWNER_ID,
@@ -79,7 +105,27 @@ def test_fake_rows_business_and_nora_are_byte_identical_at_response_boundary():
             today=date(2040, 5, 1),
         )
         responses.append(response)
-    assert responses[0] == responses[1] == GroundedResponse(NEUTRAL_REPLY)
+    business, nora = responses
+    expected_body = {"answer": NEUTRAL_REPLY, "citations": []}
+
+    def response_boundary(response: GroundedResponse) -> tuple[int, dict]:
+        return 200, {
+            "answer": response.text,
+            "citations": [
+                {
+                    "entry_id": citation.entry_id,
+                    "date": citation.entry_date.isoformat(),
+                }
+                for citation in response.citations
+            ],
+        }
+
+    assert response_boundary(business) == (200, expected_body)
+    assert response_boundary(nora) == (200, expected_body)
+    assert business.text == nora.text
+    assert business.citations == nora.citations
+    assert len(business_model.prompts) == 1
+    assert nora_model.prompts == []
 
 
 def test_invalid_date_is_rejected_without_traceback_or_path():
@@ -90,18 +136,22 @@ def test_invalid_date_is_rejected_without_traceback_or_path():
     assert str(SCRIPT) not in result.stderr
 
 
-def test_failing_provider_prints_only_public_message():
-    result = _run_script(provider="not-a-provider")
+def test_failing_provider_prints_only_public_message(swipl_executable):
+    result = _run_script(
+        provider="not-a-provider",
+        swipl_executable=swipl_executable,
+    )
     assert result.returncode != 0
     assert result.stdout == ""
     assert result.stderr.strip() == "The AI service is temporarily unavailable."
     assert "LLM_PROVIDER" not in result.stderr
 
 
-def test_unavailable_row_continues_and_verbose_error_is_safe():
+def test_unavailable_row_continues_and_verbose_error_is_safe(swipl_executable):
     result = _run_script(
         "--ask",
         "Tell me an unrelated fact.",
+        swipl_executable=swipl_executable,
     )
     assert result.returncode != 0
     assert "Reply: unavailable" in result.stdout
@@ -113,6 +163,7 @@ def test_unavailable_row_continues_and_verbose_error_is_safe():
         "--ask",
         "Tell me an unrelated fact.",
         "--verbose-errors",
+        swipl_executable=swipl_executable,
     )
     assert verbose.returncode != 0
     assert "Reply: unavailable" in verbose.stdout
@@ -145,21 +196,13 @@ def test_ollama_timeout_configuration_is_bounded(monkeypatch: pytest.MonkeyPatch
         OllamaClient(model="configured-test-model")
 
 
-def _swipl_for_test() -> str:
-    import shutil
-
-    executable = shutil.which("swipl")
-    if executable is None:
-        pytest.skip("SWI-Prolog is not installed")
-    return executable
-
-
 @pytest.mark.skipif(
     os.getenv("RUN_LIVE_AI_TESTS") != "1",
     reason="live AI tests require RUN_LIVE_AI_TESTS=1",
 )
 def test_live_maria_rows_are_safe_with_fake_summaries(
     monkeypatch: pytest.MonkeyPatch,
+    swipl_executable,
 ):
     monkeypatch.setenv("LLM_PROVIDER", "ollama")
     sample = build_fixture()
@@ -205,7 +248,7 @@ def test_live_maria_rows_are_safe_with_fake_summaries(
     )
     service = GroundedQAService(
         sample.service,
-        PrologAccessBridge(_swipl_for_test(), timeout_seconds=5.0),
+        PrologAccessBridge(swipl_executable, timeout_seconds=5.0),
         model,
         summaries,
     )

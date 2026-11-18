@@ -1,4 +1,4 @@
-# ENNOVA (Alaala) – Team members: Roldan Jr. Bazares – Front End; Ranzel Jay Gobris – Lead Developer; Bart Jayson Lola – Q/A; Jallil Sultan – UI/UX Designer; Jezelle Gabion – Documentator
+# ENNOVA (Alaala) – Team members: Roldan Jr. Bazares – Front End; Ranzel Jay Gobris – Back End; Bart Jayson Lola – Q/A; Jallil Sultan – UI/UX Designer; Jezelle Gabion – Documentator
 # Paradigm: Object-oriented repository abstraction
 from __future__ import annotations
 
@@ -37,6 +37,10 @@ class UserRepository(ABC):
     @abstractmethod
     def list_invitations(self, owner_id: str) -> tuple[Invitation, ...]:
         """Return all invitations issued by one owner."""
+
+    @abstractmethod
+    def find_invitation(self, code_hash: str) -> Invitation | None:
+        """Find an invitation by its stored code hash."""
 
     @abstractmethod
     def mark_invitation_used(self, invitation: Invitation) -> None:
@@ -80,6 +84,13 @@ class InMemoryUserRepository(UserRepository):
         return tuple(
             account for account in self._accounts.values() if account.owner_id == owner_id
         )
+
+    def find_invitation(self, code_hash: str) -> Invitation | None:
+        """Find an invitation by its stored code hash."""
+        for invitation in self._invitations:
+            if invitation.code_hash == code_hash:
+                return invitation
+        return None
 
     def add_invitation(self, invitation: Invitation) -> None:
         """Append an invitation record."""
