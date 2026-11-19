@@ -35,3 +35,17 @@ This repository is being set up as a clean project foundation for the ENNOVA bac
 - Keep secrets in `.env` and never commit them.
 - `backend/.env.example` contains placeholder values only.
 - SWI-Prolog is installed for the later F5 logic component.
+
+## Branching
+- `master` always works and passes all tests. Never commit directly to `master`.
+- One branch per feature or task: `feature/<short-name>` (for example `feature/f3-writing-modes`), `fix/<short-name>`, `docs/<short-name>`, or `chore/<short-name>`.
+- Merge into `master` through a pull request reviewed by a teammate other than the author.
+- Delete the branch after merging.
+
+## Commit messages
+- Small, focused commits: one logical change each.
+- Format: `type(scope): short summary`, in the imperative, up to about 72 characters.
+- Types: `feat`, `fix`, `test`, `docs`, `refactor`, `chore`.
+- Examples: `feat(vault): add append-only Vault class`, `test(prolog): add deny-overrides-allow cases`.
+- If a commit contains AI-generated code, add `AI-assisted: yes (verified by <name>)` to the body.
+- Commit under your own configured name and email.
