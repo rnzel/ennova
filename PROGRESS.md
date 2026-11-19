@@ -1,6 +1,6 @@
 # ENNOVA (Alaala) – Progress Tracker
 
-> Team members: [Full name], [Full name], [Full name], [Full name], [Full name]
+Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
 > Course: CS 413 – Programming Languages Final Project
 
 **Current feature:** F9a – REST API `[x]`
@@ -30,7 +30,7 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Paradigm:** none (infrastructure)
 - **Files changed:** `.gitignore`, `README.md`, `docs/ai-use-log.md`, `backend/requirements.txt`, `backend/.env.example`, `backend/run.py`, `backend/app/__init__.py`, `backend/app/config.py`, `backend/app/extensions.py`, `backend/tests/test_health.py`, `backend/tests/test_database_connection.py`, `backend/migrations/`
 - **Tests:** `pytest -q tests/test_health.py tests/test_database_connection.py` (health passes; MySQL connectivity test is skipped without configured `DATABASE_URL`)
-- **Verified by:** [Full name] – Q/A
+- **Verified by:** Bart Jayson Lola (Q/A)
 
 ### F1 – Diary model (OOP) `[x]`
 - [x] `Owner`, `Beneficiary`, `Protocol`, `Grant` classes
@@ -41,7 +41,7 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Files changed:** `backend/app/domain/__init__.py`, `backend/app/domain/diary/__init__.py`, `backend/app/domain/diary/model.py`, `backend/tests/test_diary_model.py`
 - **Tests:** `pytest -q tests/test_diary_model.py` (6 passed); `pytest -q tests` (8 passed)
 - **Open issues:** None for F1. Prolog authorization and policy-freeze enforcement remain in their planned later features.
-- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
+- **Verified by:** Bart Jayson Lola (Q/A)
 
 ### F2 – Entry processing (Functional) `[x]`
 - [x] Immutable entry data (frozen dataclasses)
@@ -53,7 +53,7 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Files changed:** `backend/app/domain/processing/__init__.py`, `backend/app/domain/processing/exceptions.py`, `backend/app/domain/processing/functions.py`, `backend/app/domain/processing/models.py`, `backend/tests/test_processing.py`
 - **Tests:** `pytest -q tests/test_processing.py` (13 passed); `pytest -q tests` (21 passed)
 - **Open issues:** None for F2. `correct` intentionally uses caller-supplied immutable correction rules; safe boundary fallbacks are handled in F8.
-- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
+- **Verified by:** Bart Jayson Lola (Q/A)
 
 ### F3 – Writing modes (OOP) `[x]`
 - [x] Abstract `WritingMode`, plus `Verbatim`, `LightFix`, `Review`
@@ -79,7 +79,7 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Files changed:** `backend/app/errors/__init__.py`, `backend/app/errors/policy_syntax.py`, `backend/app/policy/__init__.py`, `backend/app/policy/ast_nodes.py`, `backend/app/policy/lexer.py`, `backend/app/policy/parser.py`, `backend/app/policy/interpreter.py`, `backend/tests/test_policy_language.py`, `docs/grammar/grammar.ebnf`, `docs/grammar/policy-to-facts.md`, `docs/grammar/sample_*.policy`, `docs/grammar/invalid_*.policy`
 - **Tests:** `pytest -q tests/test_policy_language.py` (20 passed); `pytest -q tests` (41 passed); SWI-Prolog accepted generated escaped facts
 - **Open issues:** None for F4. Access hierarchy, deny precedence, registration, and death-trigger facts remain in F5.
-- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
+- **Verified by:** Bart Jayson Lola (Q/A)
 
 ### F5 – Prolog access rules (Logic) `[x]`
 - [x] `access_rules.pl`: deny by default, deny beats allow, hierarchy, release dates, registered check, frozen policy
@@ -90,7 +90,7 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Files changed:** `backend/app/policy/access_rules.pl`, `backend/app/policy/access_bridge.py`, `backend/app/policy/__init__.py`, `backend/app/policy/interpreter.py`, `backend/tests/test_prolog_access.py`, `docs/access-test-table.md`
 - **Tests:** `pytest -q tests/test_prolog_access.py` (18 passed); `pytest -q tests` (59 passed); live batched SWI-Prolog check returned `allow, deny, allow, deny`; `git diff --check` passed
 - **Open issues:** `can_modify_policy/1` enforces frozen-state in Prolog; owner authentication remains the app boundary's responsibility because no owner fact is part of the specified F5 vocabulary.
-- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
+- **Verified by:** Bart Jayson Lola (Q/A)
 
 ### F6 – Accounts and registration `[ ]`
 - [x] Register / login with normalized password hashing and required-claim JWTs
@@ -126,7 +126,7 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Files changed:** `backend/.env.example`, `backend/app/config.py`, `backend/app/policy/access_rules.pl`, `backend/app/policy/access_bridge.py`, `backend/app/policy/__init__.py`, `backend/app/ai/`, `backend/app/services/__init__.py`, `backend/app/services/grounded_qa.py`, `backend/tests/test_grounded_qa.py`, `PROGRESS.md`, `docs/ai-use-log.md`
 - **Tests:** `pytest -q tests/test_grounded_qa.py` (20 passed); `pytest -q` (107 passed); `git diff --check` passed
 - **Open issues:** Owner Q&A is not implemented. F7a uses only the scripted fake client; live provider behavior is not established by its tests.
-- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
+- **Verified by:** Bart Jayson Lola (Q/A)
 
 ### F7b – Gemini integration `[x]`
 - [x] Pin `google-genai` and configure backend-only `GEMINI_API_KEY`, `GEMINI_MODEL`, and opt-in live tests
@@ -144,7 +144,7 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Files changed:** `backend/requirements.txt`, `backend/.env.example`, `backend/app/config.py`, `backend/app/ai/__init__.py`, `backend/app/ai/client.py`, `backend/app/ai/gemini.py`, `backend/app/ai/summaries.py`, `backend/app/ai/tools.py`, `backend/app/policy/access_rules.pl`, `backend/app/services/diary_service.py`, `backend/app/services/grounded_qa.py`, `backend/tests/test_gemini.py`, `backend/tests/test_grounded_qa.py`, `backend/tests/test_entry_store.py`, `docs/ai-design-note.md`, `PROGRESS.md`, `docs/ai-use-log.md`
 - **Tests:** `pytest -q tests/test_entry_store.py tests/test_prolog_access.py tests/test_grounded_qa.py` (52 passed); `pytest -q` (128 passed, 1 skipped); `git diff --check` passed
 - **Open issues:** `access_rules.pl` keys letter releases by person and title, not entry ID; it now denies all entries when multiple IDs share a title, including duplicate facts supplied outside `DiaryService`. The supported write path also rejects same-owner duplicate titles. The live Gemini test was skipped because `RUN_LIVE_AI_TESTS` was not enabled; no API key or real provider request was used. Fake and mocked tests do not establish live model behavior. Owner Q&A remains unimplemented.
-- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
+- **Verified by:** Bart Jayson Lola (Q/A)
 
 ### F7c – Ollama integration `[x]`
 - [x] Add an Ollama `/api/chat` adapter with schema-only manual tools and strict JSON output
@@ -160,7 +160,7 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Files changed:** `backend/.env.example`, `backend/app/config.py`, `backend/app/ai/__init__.py`, `backend/app/ai/gemini.py`, `backend/app/ai/ollama.py`, `backend/app/ai/provider.py`, `backend/app/ai/summaries.py`, `backend/tests/test_gemini.py`, `backend/tests/test_ollama.py`, `backend/tests/test_grounded_qa.py`, `docs/ai-design-note.md`, `docs/ai-use-log.md`, `PROGRESS.md`
 - **Tests:** `pytest -q tests/test_ollama.py tests/test_gemini.py tests/test_grounded_qa.py` (71 passed, 2 skipped); `pytest -q` (159 passed, 2 skipped); `git diff --check` passed
 - **Open issues:** Live Ollama behavior is not established by mocked tests; no live provider call was made.
-- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
+- **Verified by:** Bart Jayson Lola (Q/A)
 
 ### F7d – Ollama-only provider `[x]`
 - [x] Remove Gemini client, SDK dependency, and Gemini configuration
@@ -173,7 +173,7 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Files changed:** `.github/copilot-instructions.md`, `backend/requirements.txt`, `backend/.env.example`, `backend/app/config.py`, `backend/app/ai/gemini.py` (deleted), `backend/app/ai/__init__.py`, `backend/app/ai/provider.py`, `backend/app/ai/summaries.py`, `backend/app/ai/model_summaries.py`, `backend/tests/test_gemini.py` (deleted), `backend/tests/test_ollama.py`, `backend/tests/test_model_summaries.py`, `docs/ai-design-note.md`, `docs/ai-use-log.md`, `PROGRESS.md`
 - **Tests:** `pytest -q` (145 passed, 1 skipped); `git diff --check` passed
 - **Open issues:** None known; live model behavior remains outside mocked-test coverage.
-- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
+- **Verified by:** Bart Jayson Lola (Q/A)
 
 ### F7e – Maria command-line demo `[x]`
 - [x] Add a safe CLI for the six handout rows using the fictional Lola fixture and sample policy
@@ -200,7 +200,7 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Files changed:** `backend/app/errors/base.py`, `backend/app/errors/typed.py`, `backend/app/errors/__init__.py`, `backend/app/errors/policy_syntax.py`, `backend/app/domain/processing/exceptions.py`, `backend/app/domain/processing/functions.py`, `backend/tests/test_errors.py`
 - **Tests:** `pytest -q tests/test_errors.py tests/test_processing.py tests/test_policy_language.py` (50 passed); `pytest -q tests` (76 passed); `git diff --check` passed
 - **Safety note:** `TamperDetected` integrity verification must run only after the access check and only on permitted entries. The errors package has no Flask or database imports and does not map errors to HTTP responses.
-- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
+- **Verified by:** Bart Jayson Lola (Q/A)
 
 ### F6a – Entry store `[x]`
 - [x] Append-only `EntryRepository` and `InMemoryEntryRepository`
@@ -213,7 +213,7 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Files changed:** `backend/app/domain/diary/repository.py`, `backend/app/domain/diary/__init__.py`, `backend/app/services/__init__.py`, `backend/app/services/diary_service.py`, `backend/app/services/access_facts.py`, `backend/tests/conftest.py`, `backend/tests/test_entry_store.py`, `backend/tests/test_prolog_access.py`
 - **Tests:** `pytest -q tests/test_entry_store.py tests/test_prolog_access.py` (29 passed); `pytest -q tests` (87 passed); `git diff --check` passed
 - **Open issues:** The in-memory append is not thread-safe. A database repository must atomically read the last hash and insert the next record. Release dates are policy data, not `LetterEntry.release_date`; full-chain verification remains explicit and must follow access authorization.
-- **Verified by:** [Full name] – Q/A (replace with reviewer/verifier's name)
+- **Verified by:** Bart Jayson Lola (Q/A)
 
 ### F9a – REST API `[x]`
 - [x] Thin Flask blueprints for authentication, invitations, entries, policy, death trigger, and grounded Q&A

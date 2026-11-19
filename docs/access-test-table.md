@@ -1,6 +1,5 @@
+<!-- Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator) -->
 # ENNOVA Prolog Access Test Table
-
-Team members: [Full name] – Front End; [Full name] – Back End; [Full name] – Q/A; [Full name] – UI/UX Designer; [Full name] – Documentator
 
 The test suite reads this table and sends each row to SWI-Prolog. The
 `maria_acceptance` rows are batched together after parsing and interpreting the

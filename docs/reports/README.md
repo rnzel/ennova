@@ -6,10 +6,10 @@ This directory contains project reports and other submitted documentation for EN
 
 | Member | Role |
 |---|---|
-| `<full name>` | Front End |
-| `<full name>` | Lead Developer |
-| `<full name>` | Q/A |
-| `<full name>` | UI/UX Designer |
-| `<full name>` | Documentator |
+| Roldan Jr. Bazares | Front End |
+| Ranzel Jay Gobris | Lead Developer / Back End |
+| Bart Jayson Lola | Q/A |
+| Jallil Sultan | UI/UX Designer |
+| Jezelle Gabion | Documentator |
 
 Reports should describe the relevant feature, demonstrate the programming paradigm used, record verification results, and avoid secrets or real personal diary data.

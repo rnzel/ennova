@@ -1,11 +1,6 @@
 # ENNOVA (Alaala) – Copilot Instructions
 
-> Team members (must appear on every submitted file):
-> 1. Roldan Jr. Bazares – Front End
-> 2. Ranzel Jay Gobris – Lead Developer
-> 3. Bart Jayson Lola – Q/A
-> 4. Jallil Sultan – UI/UX Designer
-> 5. Jezelle Gabion – Documentator
+Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
 
 ## 1. What this project is
 
