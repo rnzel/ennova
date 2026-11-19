@@ -1,6 +1,14 @@
 # ENNOVA
 
-Team members: [Full name] – Front End; [Full name] – Back End; [Full name] – Q/A; [Full name] – UI/UX Designer; [Full name] – Documentator
+## Team
+
+| Member | Role |
+|---|---|
+| Roldan Jr. Bazares | Front End |
+| Ranzel Jay Gobris | Lead Developer / Back End |
+| Bart Jayson Lola | Q/A |
+| Jallil Sultan | UI/UX Designer |
+| Jezelle Gabion | Documentator |
 
 ## Project summary
 ENNOVA is a personal AI diary and digital legacy app that keeps owner-written entries private, exposes only permitted content to beneficiaries, and routes access decisions through a policy language plus Prolog rules.
