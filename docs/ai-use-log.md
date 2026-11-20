@@ -1,5 +1,7 @@
 Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
 
+Historical note: Gemini was later removed; the current provider selection is Ollama or fake only (`backend/app/ai/provider.py`).
+
 date | feature | prompt summary | what was generated | changed or rejected | verified by
 2026-11-12 | F0 – Project foundation | Bootstrapped the backend foundation, config, env placeholders, migration setup, and health endpoint | Flask app factory, backend config, `.env.example`, `requirements.txt`, migration scaffold, health route, and F0 smoke tests | No major rejections; DB connectivity check remains conditional on MySQL env values, and no secrets were added | Bart Jayson Lola (Q/A)
 2026-11-12 | F1 – Diary model | Implemented the pure-Python OOP diary domain model and its focused tests | Owner, Beneficiary, Protocol, Grant, Entry subclasses, append-only Vault, and model tests | Kept authorization decisions and policy-freeze behavior out of the model for their planned Prolog/policy features | Bart Jayson Lola (Q/A)
