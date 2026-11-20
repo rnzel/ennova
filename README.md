@@ -35,9 +35,34 @@ ENNOVA is a personal AI diary and digital legacy app that keeps owner-written en
 
 Use fictional data only. Never put a real person's diary or personal details in this project.
 
+## Frontend setup
+The native mobile app is in `frontend/mobile/` and uses Expo + React Native.
+Install Node.js (npm is included), then from the project root:
+
+1. `cd frontend/mobile`
+2. `npm install`
+3. `npm start`
+4. Scan the QR code with Expo Go, or press `a` to open an available Android emulator.
+5. Run `npm run typecheck` to check the TypeScript project.
+
+A native iOS build requires macOS and Xcode. The Vite app at `frontend/` is kept
+as a browser-only prototype; it is not the mobile app.
+
+The current native app is a UI skeleton: sign-in is simulated, and diary,
+beneficiary, policy, and Q&A data remain local sample content. No backend or AI
+service is connected, and the frontend does not enforce authorization. Use
+fictional data only. The logo is bundled at
+`frontend/mobile/assets/images/ennova-logo.jpg`; its palette uses deep navy,
+teal, and pale cyan.
+
 ## Repository layout
 | Path | Contents |
 |---|---|
+| `frontend/mobile/` | Expo + React Native mobile application |
+| `frontend/mobile/app/` | Mobile routes and tab navigation |
+| `frontend/mobile/components/` | Reusable native UI components |
+| `frontend/mobile/data/` | Fictional frontend prototype data |
+| `frontend/src/` | Preserved Vite browser prototype |
 | `backend/app/` | Backend source code (domain, services, routes, AI) |
 | `backend/app/policy/` | Policy language and the Prolog rules in `access_rules.pl` |
 | `backend/scripts/` | Demo script |
