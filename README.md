@@ -53,6 +53,15 @@ Use fictional data only. Never put a real person's diary or personal details in 
 - `backend/.env.example` contains placeholder values only.
 - SWI-Prolog is required: the access rules run in it, and the tests fail (they don't skip) without it.
 
+## Known limitations
+- Accounts, entries, policies, and audit state are in memory. There are no SQLAlchemy models or migration revisions yet.
+- Flask-Limiter uses in-memory rate-limit storage, so limits are per-process and are not suitable for production or multiple workers.
+- No CI/CD, Docker, or deployment files are present.
+- There is no mobile app.
+- F10 (Letter of Wishes) is incomplete.
+
+See [docs/api-and-configuration.md](docs/api-and-configuration.md) for the REST endpoints and environment variables.
+
 ## Branching
 - `master` always works and passes all tests. Never commit directly to `master`.
 - One branch per feature or task: `feature/<short-name>` (for example `feature/f3-writing-modes`), `fix/<short-name>`, `docs/<short-name>`, or `chore/<short-name>`.

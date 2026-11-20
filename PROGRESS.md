@@ -15,7 +15,7 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 ### F0 – Project foundation (new project) `[x]`
 - [x] Create GitHub repo `ennova`, add `.gitignore`, README stub, `docs/ai-use-log.md`
 - [x] Add `.github/copilot-instructions.md` and `PROGRESS.md`
-- [x] Protect `main` (require pull request + 1 review)
+- [x] Protect `master` (require pull request + 1 review)
 - [x] Each member sets `git config user.name` / `user.email`
 - [x] Branch for this feature: `feature/f0-foundation`
 - [x] Create `backend/` with virtual environment and `requirements.txt` (Flask, Flask-SQLAlchemy, Flask-Migrate, PyMySQL, python-dotenv, pytest)
@@ -92,7 +92,7 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Open issues:** `can_modify_policy/1` enforces frozen-state in Prolog; owner authentication remains the app boundary's responsibility because no owner fact is part of the specified F5 vocabulary.
 - **Verified by:** Bart Jayson Lola (Q/A)
 
-### F6 – Accounts and registration `[ ]`
+### F6 – Accounts and registration `[x]`
 - [x] Register / login with normalized password hashing and required-claim JWTs
 - [x] `registered_person_ids` output for Prolog facts
 - [x] Owner-issued, hashed, expiring, single-use invitation codes
@@ -101,18 +101,19 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Paradigm:** Scripting (supporting feature)
 - **Files changed:** `backend/requirements.txt`, `backend/.env.example`, `backend/app/config.py`, `backend/app/errors/`, `backend/app/policy/lexer.py`, `backend/app/domain/accounts/`, `backend/app/services/auth_service.py`, `backend/tests/test_accounts.py`
 - **Tests:** `pytest -q tests/test_accounts.py` (15 passed); full suite `pytest -q` (181 passed, 4 skipped); `git diff --check` passed
-- **Open issues:** No HTTP routes, refresh tokens, password reset, or database repository are included by design. PyJWT is pinned to 2.15.1 (released 2026-09-28); the disputed CVE-2025-45768 concern for 2.10.1 is mitigated here by enforcing a 32-byte JWT secret.
+- **Open issues:** Refresh tokens, password reset, and a database repository are not included by design. PyJWT is pinned to 2.15.1 (released 2026-09-28); the disputed CVE-2025-45768 concern for 2.10.1 is mitigated here by enforcing a 32-byte JWT secret.
 - **Verified by:** review pending
 
 ### F7 – Grounded AI Q&A (Scripting) `[~]`
 - [x] Authorized retrieval (Prolog check BEFORE search)
 - [x] Tools: `search_entries`, `get_entry`, `count_mentions`, `get_letter`
-- [x] Gemini integration (key on backend only; live calls are opt-in)
+- [x] Ollama integration (fake provider available for tests)
 - [x] System prompt; policy remains in Prolog/backend and is not sent to the model
 - [x] Date citations; neutral reply for no-record and denied (identical)
 - [x] Design note: model, tools, instructions
 - [x] Tests: Maria scenario (all 6 rows), prompt injection, AI unavailable, restricted entries never reach the model
 - **Paradigm:** Scripting
+- **Open issues:** Owner Q&A is not implemented; live Ollama behavior is not established by mocked tests.
 
 ### F7a – Grounded AI orchestration `[x]`
 - [x] Add Prolog letter-status queries to the single batched F5 bridge call
@@ -225,7 +226,7 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - [x] End-to-end Maria HTTP scenario and provider-absent startup tests
 - **Paradigm:** Scripting HTTP orchestration over OOP repositories, F4 parsing, and F5/F7 services
 - **Files changed:** `backend/app/__init__.py`, `backend/app/config.py`, `backend/app/routes/`, `backend/app/services/api_state.py`, `backend/app/services/auth_service.py`, `backend/app/domain/accounts/repository.py`, `backend/app/errors/`, `backend/requirements.txt`, `backend/.env.example`, `backend/tests/test_api.py`, `README.md`, `PROGRESS.md`, `docs/ai-use-log.md`
-- **Tests:** `pytest -q tests/test_api.py tests/test_accounts.py` (23 passed); full suite `pytest -q` (189 passed, 4 skipped); `git diff --check` passed
+- **Tests:** `pytest -q tests/test_api.py tests/test_accounts.py` (23 passed); earlier F9a full-suite record: 189 passed, 4 skipped; latest full-suite run (2026-11-20, Windows, Python 3.14.7, pytest 8.3.2): 203 passed, 3 skipped, 0 failed (206 collected). Skips: MySQL credentials not configured (`test_database_connection.py`); live AI tests require `RUN_LIVE_AI_TESTS=1` (`test_demo_maria.py`); live Ollama safety check requires `RUN_LIVE_AI_TESTS=1` (`test_ollama.py`); `git diff --check` passed
 - **Open issues:** The owner `/ask` route returns the neutral reply until Prolog exposes an `owner/1` fact. API state and rate-limit storage are process-local; a multi-worker deployment needs shared persistence/storage. No MySQL, CORS, or mobile work was added.
 - **Verified by:** review pending
 
@@ -274,7 +275,7 @@ Device trust, recovery codes, password reset, full trustee verification workflow
 - [ ] All five names on every file
 
 ## Git conventions (summary)
-- Branch per feature: `feature/f<number>-<name>`. Never commit to `main`.
+- Branch per feature: `feature/f<number>-<name>`. Never commit to `master`.
 - PR title `F<number>: <name>`, reviewed by a teammate (reviewer = verifier in AI-use log).
 - Commit format: `type(scope): summary` (feat, fix, test, docs, refactor, chore).
 - Full rules: `.github/copilot-instructions.md`, section 11.
