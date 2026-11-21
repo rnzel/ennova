@@ -52,6 +52,7 @@ Use fictional data only. Never put a real person's diary or personal details in 
 - Keep secrets in `.env` and never commit them.
 - `backend/.env.example` contains placeholder values only.
 - SWI-Prolog is required: the access rules run in it, and the tests fail (they don't skip) without it.
+- Letters of Wishes in ENNOVA are personal messages and are not legal wills or substitutes for legally executed estate documents. ENNOVA does not provide legal advice.
 
 ## Known limitations
 - Accounts, entries, policies, and audit state are in memory. There are no SQLAlchemy models or migration revisions yet.

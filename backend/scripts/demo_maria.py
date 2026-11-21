@@ -416,6 +416,8 @@ def _print_response(
     print(f"Expected behavior: {expected}")
     print(f"Today: {today.isoformat()}")
     print(f"Reply: {response.text}")
+    if response.disclaimer is not None:
+        print(f"Disclaimer: {response.disclaimer}")
     if response.citations:
         citations = ", ".join(
             f"{citation.entry_id} ({citation.entry_date.isoformat()})"

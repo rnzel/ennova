@@ -9,7 +9,7 @@ from flask import Blueprint, current_app, jsonify
 from app.ai.model_summaries import store_derived_summary
 from app.domain.accounts import AccountRole
 from app.domain.diary import LetterEntry
-from app.errors import ConflictError
+from app.errors import ConflictError, LETTER_OF_WISHES_DISCLAIMER
 from app.routes.common import bearer_required, current_account, json_body
 
 entries_bp = Blueprint("entries", __name__)
@@ -18,12 +18,15 @@ MAX_ENTRY_LENGTH = 10_000
 
 
 def _entry_payload(record):
-    return {
+    payload = {
         "entry_id": record.entry.entry_id,
         "kind": record.entry.kind,
         "created_at": record.entry.created_at.isoformat(),
         "topics": list(record.topics),
     }
+    if isinstance(record.entry, LetterEntry):
+        payload["disclaimer"] = LETTER_OF_WISHES_DISCLAIMER
+    return payload
 
 
 @entries_bp.post("/entries")
