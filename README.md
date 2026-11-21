@@ -25,6 +25,8 @@ ENNOVA is a personal AI diary and digital legacy app that keeps owner-written en
    - Git Bash: `cp .env.example .env`
 5. Set these values in `backend/.env`:
    - `JWT_SECRET_KEY`: at least 32 characters. Generate one with `python -c "import secrets; print(secrets.token_hex(32))"`.
+   - `DATABASE_URL`: Aiven MySQL SQLAlchemy URL, for example `mysql+pymysql://USER:PASSWORD@HOST:PORT/DATABASE`. URL-encode special characters in the username or password.
+   - `AIVEN_CA_PATH`: path to the Aiven CA certificate file supplied for your service. The backend passes it as the PyMySQL TLS CA setting.
    - `LLM_PROVIDER`: `fake` (scripted answers, no model needed) or `ollama`.
    - `OLLAMA_MODEL`: only when using Ollama. Install Ollama, run `ollama pull <model>`, and use the exact name shown by `ollama list`.
 6. Install SWI-Prolog and make `swipl` available on `PATH`, or set `SWIPL_EXECUTABLE` in `.env`. Check it with `swipl --version`.
@@ -34,6 +36,14 @@ ENNOVA is a personal AI diary and digital legacy app that keeps owner-written en
 10. Optional demo script (no model needed): set `LLM_PROVIDER=fake`, then run `python scripts/demo_maria.py`.
 
 Use fictional data only. Never put a real person's diary or personal details in this project.
+
+### Persistent account database
+
+Owner accounts, beneficiary accounts, and invitations use the configured MySQL database. The `accounts` table stores normalized username/email, role, owner/person IDs, a password hash, and creation time. The `invitations` table stores only the invitation hash, owner/person IDs, expiry, and used state. Unique database constraints protect usernames, emails, and owner/person pairs. Beneficiary insertion and invitation use are committed in one transaction.
+
+After checking the target Aiven database schema and confirming these table names are unused, initialize the schema from `backend/` with `flask --app run db upgrade`. The migration adds `accounts` and `invitations`; it does not drop tables, and its downgrade is intentionally disabled. Do not point tests at a production database. The SQL repository tests use isolated in-memory SQLite; live integration checks should use a dedicated disposable test database.
+
+The local `.env` is loaded by the app configuration and is ignored by Git. Missing MySQL configuration prevents normal app startup; the backend does not fall back to in-memory account storage.
 
 ## Repository layout
 | Path | Contents |
@@ -55,7 +65,7 @@ Use fictional data only. Never put a real person's diary or personal details in 
 - Letters of Wishes in ENNOVA are personal messages and are not legal wills or substitutes for legally executed estate documents. ENNOVA does not provide legal advice.
 
 ## Known limitations
-- Accounts, entries, policies, and audit state are in memory. There are no SQLAlchemy models or migration revisions yet.
+- Entries, policies, and audit state are in memory; account and invitation records are persisted in MySQL.
 - Flask-Limiter uses in-memory rate-limit storage, so limits are per-process and are not suitable for production or multiple workers.
 - No CI/CD, Docker, or deployment files are present.
 - There is no mobile app.

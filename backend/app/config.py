@@ -4,13 +4,17 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load backend-local development configuration without overriding deployment env.
+load_dotenv(Path(__file__).resolve().parents[1] / ".env", override=False)
 
 class BaseConfig:
     SECRET_KEY = os.getenv("SECRET_KEY", "change-me")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
     APP_TIMEZONE = os.getenv("APP_TIMEZONE", "UTC")
     MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", "1048576"))
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///ennova.db")
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     AIVEN_CA_PATH = os.getenv("AIVEN_CA_PATH", "")
     SWIPL_EXECUTABLE = os.getenv("SWIPL_EXECUTABLE", "swipl")
@@ -35,9 +39,9 @@ class BaseConfig:
     )
 
 
-def get_database_connect_args():
+def get_database_connect_args(ca_path: str | None = None):
     """Build MySQL TLS connection arguments for Aiven configured via env."""
-    ca_path = os.getenv("AIVEN_CA_PATH", "")
+    ca_path = ca_path if ca_path is not None else os.getenv("AIVEN_CA_PATH", "")
     if not ca_path:
         return {}
     return {"ssl": {"ca": ca_path}}

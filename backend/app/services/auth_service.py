@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import os
+import re
 import secrets
 import unicodedata
 from collections.abc import Callable
@@ -36,17 +37,46 @@ _DUMMY_PASSWORD_HASH = generate_password_hash(
 _DUMMY_INVITATION_HASH = hashlib.sha256(
     b"ennova-dummy-invitation-that-is-never-accepted"
 ).hexdigest()
+_USERNAME_RE = re.compile(r"[a-z0-9_.-]+\Z")
+_EMAIL_RE = re.compile(r"[^\s@<>]+@[^\s@<>.]+(?:\.[^\s@<>.]+)+\Z")
 
 
 def normalize_username(username: str) -> str:
     """NFKC-normalize, trim, and casefold a username."""
     if not isinstance(username, str):
         raise TypeError("username must be a string.")
-    normalized = unicodedata.normalize("NFKC", username).strip().casefold()
+    normalized = unicodedata.normalize("NFKC", username).strip().lower()
     if not USERNAME_MIN_LENGTH <= len(normalized) <= USERNAME_MAX_LENGTH:
         raise ValueError("username length is invalid.")
-    if any(not (char.isalnum() or char in "_-.") for char in normalized):
+    if not _USERNAME_RE.fullmatch(normalized):
         raise ValueError("username contains an invalid character.")
+    return normalized
+
+
+def normalize_email(email: str) -> str:
+    """Trim, lowercase, and validate an email address with bounded length."""
+    if not isinstance(email, str):
+        raise TypeError("email must be a string.")
+    normalized = unicodedata.normalize("NFKC", email).strip().lower()
+    if len(normalized) > 254 or not _EMAIL_RE.fullmatch(normalized):
+        raise ValueError("email address is invalid.")
+    local, domain = normalized.rsplit("@", 1)
+    labels = domain.split(".")
+    if (
+        len(local) > 64
+        or len(domain) > 253
+        or local.startswith(".")
+        or local.endswith(".")
+        or ".." in local
+        or any(
+            not label
+            or len(label) > 63
+            or label.startswith("-")
+            or label.endswith("-")
+            for label in labels
+        )
+    ):
+        raise ValueError("email address is invalid.")
     return normalized
 
 
@@ -92,9 +122,10 @@ class AuthService:
         self._jwt_lifetime = jwt_lifetime
         self._login_failures: dict[str, tuple[int, datetime]] = {}
 
-    def register_owner(self, username: str, password: str) -> UserAccount:
+    def register_owner(self, username: str, email: str, password: str) -> UserAccount:
         """Register an owner; the registration path fixes the role."""
         normalized_username = normalize_username(username)
+        normalized_email = normalize_email(email)
         normalized_password = normalize_password(password)
         self._reject_username_password_match(
             normalized_username, normalized_password
@@ -103,6 +134,7 @@ class AuthService:
         account = UserAccount(
             account_id,
             normalized_username,
+            normalized_email,
             account_id,
             normalized_username,
             AccountRole.OWNER,
@@ -146,10 +178,12 @@ class AuthService:
         owner_id: str,
         invitation_code: str,
         username: str,
+        email: str,
         password: str,
     ) -> UserAccount:
         """Redeem an invitation using one generic failure for all invalid cases."""
         normalized_username = normalize_username(username)
+        normalized_email = normalize_email(email)
         normalized_password = normalize_password(password)
         self._reject_username_password_match(
             normalized_username, normalized_password
@@ -182,20 +216,21 @@ class AuthService:
         account = UserAccount(
             account_id,
             normalized_username,
+            normalized_email,
             owner_id,
             person_id,
             AccountRole.BENEFICIARY,
             generate_password_hash(normalized_password),
         )
-        self._repository.add_user(account)
-        self._repository.mark_invitation_used(matched)
+        self._repository.add_user(account, matched)
         return account
 
     def redeem_invitation(
-        self, invitation_code: str, username: str, password: str
+        self, invitation_code: str, username: str, email: str, password: str
     ) -> UserAccount:
         """Redeem an invitation using only its stored owner and person IDs."""
         normalized_username = normalize_username(username)
+        normalized_email = normalize_email(email)
         normalized_password = normalize_password(password)
         self._reject_username_password_match(
             normalized_username, normalized_password
@@ -225,13 +260,13 @@ class AuthService:
         account = UserAccount(
             account_id,
             normalized_username,
+            normalized_email,
             owner_id,
             person_id,
             AccountRole.BENEFICIARY,
             password_hash,
         )
-        self._repository.add_user(account)
-        self._repository.mark_invitation_used(matched)
+        self._repository.add_user(account, matched)
         return account
 
     def login(self, username: str, password: str) -> str:

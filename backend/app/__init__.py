@@ -14,6 +14,7 @@ from app.ai.model_summaries import ModelSummarizer
 from app.ai.provider import create_model_client
 from app.ai.summaries import FakeSummarizer, InMemorySummaryStore
 from app.domain.accounts import InMemoryUserRepository
+from app.infrastructure.sql_user_repository import SQLAlchemyUserRepository
 from app.domain.diary import InMemoryEntryRepository
 from app.errors import (
     EnnovaError,
@@ -40,24 +41,38 @@ def create_app(
     model_client=None,
     summarizer=None,
     config_overrides: dict | None = None,
+    user_repository=None,
 ) -> Flask:
     """Create and configure the Flask application instance."""
     app = Flask(__name__)
     app.config.from_object(BaseConfig)
     if config_overrides:
         app.config.update(config_overrides)
+    if app.config.get("TESTING") and not app.config.get("SQLALCHEMY_DATABASE_URI"):
+        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite://"
     app.config["MAX_CONTENT_LENGTH"] = BaseConfig.MAX_CONTENT_LENGTH
 
-    if app.config["SQLALCHEMY_DATABASE_URI"].startswith("mysql"):
+    database_uri = app.config.get("SQLALCHEMY_DATABASE_URI")
+    if not config_overrides and not database_uri:
+        raise RuntimeError("MySQL DATABASE_URL is required for account storage.")
+    if user_repository is None and app.config.get("TESTING"):
+        user_repository = InMemoryUserRepository()
+    elif user_repository is None:
+        if not isinstance(database_uri, str) or not database_uri.startswith("mysql+"):
+            raise RuntimeError("MySQL DATABASE_URL is required for account storage.")
+        user_repository = SQLAlchemyUserRepository()
+
+    if isinstance(app.config.get("SQLALCHEMY_DATABASE_URI"), str) and app.config["SQLALCHEMY_DATABASE_URI"].startswith("mysql"):
         app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-            "connect_args": get_database_connect_args()
+            "connect_args": get_database_connect_args(app.config.get("AIVEN_CA_PATH")),
+            "pool_pre_ping": True,
+            "pool_recycle": 280,
         }
 
     db.init_app(app)
     migrate.init_app(app, db)
     limiter.init_app(app)
 
-    user_repository = InMemoryUserRepository()
     entry_repository = InMemoryEntryRepository()
     api_state = InMemoryApiState()
     app_clock = clock or (lambda: datetime.now(timezone.utc))

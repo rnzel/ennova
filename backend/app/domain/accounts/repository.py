@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from threading import RLock
+
+from app.errors import ConflictError, InvalidBeneficiaryError
 
 from .models import Invitation, UserAccount
 
@@ -11,8 +14,8 @@ class UserRepository(ABC):
     """Storage interface used by authentication without database coupling."""
 
     @abstractmethod
-    def add_user(self, account: UserAccount) -> None:
-        """Store an account, rejecting duplicate normalized identities."""
+    def add_user(self, account: UserAccount, invitation: Invitation | None = None) -> None:
+        """Atomically store an account and optionally consume an invitation."""
 
     @abstractmethod
     def get_by_username(self, username: str) -> UserAccount | None:
@@ -55,17 +58,37 @@ class InMemoryUserRepository(UserRepository):
         self._accounts: dict[str, UserAccount] = {}
         self._usernames: dict[str, UserAccount] = {}
         self._owner_people: dict[tuple[str, str], UserAccount] = {}
+        self._emails: dict[str, UserAccount] = {}
         self._invitations: list[Invitation] = []
+        self._lock = RLock()
 
-    def add_user(self, account: UserAccount) -> None:
-        """Store an account with unique username and owner/person identity."""
-        if account.username in self._usernames:
-            raise ValueError("username already exists")
-        if (account.owner_id, account.person_id) in self._owner_people:
-            raise ValueError("person already registered")
-        self._accounts[account.account_id] = account
-        self._usernames[account.username] = account
-        self._owner_people[(account.owner_id, account.person_id)] = account
+    def add_user(self, account: UserAccount, invitation: Invitation | None = None) -> None:
+        """Atomically store an account and optionally redeem its invitation."""
+        with self._lock:
+            if account.username in self._usernames:
+                raise ConflictError({"field": "username"})
+            if account.email in self._emails:
+                raise ConflictError({"field": "email"})
+            if (account.owner_id, account.person_id) in self._owner_people:
+                raise ConflictError({"field": "person"})
+            invitation_index = None
+            if invitation is not None:
+                invitation_index = next(
+                    (i for i, current in enumerate(self._invitations) if current == invitation),
+                    None,
+                )
+                if invitation_index is None or invitation.used:
+                    raise InvalidBeneficiaryError({"reason": "invitation_rejected"})
+            self._accounts[account.account_id] = account
+            self._usernames[account.username] = account
+            self._emails[account.email] = account
+            self._owner_people[(account.owner_id, account.person_id)] = account
+            if invitation_index is not None:
+                current = self._invitations[invitation_index]
+                self._invitations[invitation_index] = Invitation(
+                    current.code_hash, current.owner_id, current.person_id,
+                    current.expires_at, used=True,
+                )
 
     def get_by_username(self, username: str) -> UserAccount | None:
         """Find an account by normalized username."""
