@@ -275,6 +275,10 @@ def test_maria_facts_are_authorized_by_real_prolog_bridge(swipl_executable):
     )
 
     assert response.text == "Family answer."
+    assert tuple(citation.entry_id for citation in response.citations) == (
+        "family-1",
+    )
+    assert len(model.prompts) == 2
     assert qa.answer(
         "What did he write about family?",
         owner_id=owner.account_id,

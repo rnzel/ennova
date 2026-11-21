@@ -190,7 +190,9 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Files changed:** `backend/.env.example`, `backend/app/config.py`, `backend/app/ai/ollama.py`, `backend/scripts/demo_maria.py`, `backend/tests/test_demo_maria.py`, `PROGRESS.md`, `docs/ai-design-note.md`, `docs/ai-use-log.md`
 - **Tests:** Focused Ollama/demo tests: 6 passed, 2 skipped; full suite: 150 passed, 4 skipped; `git diff --check` passed
 - **Open issues:** Live test requires `RUN_LIVE_AI_TESTS=1`, configured Ollama, model, and SWI-Prolog.
-- **Known issue:** Live Ollama (`llama3.2:3b`, CPU-only) rows time out. Measured cause: the small model sends invalid tool arguments and repeats them until the deadline. The two backend-built rows (release-date message, neutral reply) work live. Planned fixes if time allows: answer count and date questions directly from the backend, stop on repeated invalid calls, or try a larger model.
+- **Live Ollama fix:** Live Ollama (`llama3.2:3b`, CPU-only) no longer relies on model tool calls for the fixed Maria count, family, and letter acceptance rows. The backend answers from verified Prolog-permitted entries and attaches backend citations; the tool loop now stops repeated tool-call signatures. Live business and Nora rows remain neutral. Remaining Ollama behavior is tool-loop-dependent for other questions.
+- **Genuine family-model milestone:** The fixed family demo row was restored to the model/tool loop. The 3B live test now calls `search_entries`, receives only permitted derived summaries, has the model generate a family answer, and validates cited entry IDs through the backend.
+- **Generic grounded-QA cleanup:** Removed fixed-word/named-person/tag backend branches. Ollama search normalization now uses the last user message and only normalizes the exact small-model `{text,citation_ids}` shape. Added a whole-scenario alternate-fixture test and generic stopword filtering.
 
 ### F8 – Typed exceptions and fallbacks `[x]`
 - [x] `EnnovaError` base with private detail, safe public message, and stable code
@@ -228,6 +230,16 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Files changed:** `backend/app/__init__.py`, `backend/app/config.py`, `backend/app/routes/`, `backend/app/services/api_state.py`, `backend/app/services/auth_service.py`, `backend/app/domain/accounts/repository.py`, `backend/app/errors/`, `backend/requirements.txt`, `backend/.env.example`, `backend/tests/test_api.py`, `README.md`, `PROGRESS.md`, `docs/ai-use-log.md`
 - **Tests:** `pytest -q tests/test_api.py tests/test_accounts.py` (23 passed); earlier F9a full-suite record: 189 passed, 4 skipped; latest full-suite run (2026-11-20, Windows, Python 3.14.7, pytest 8.3.2): 203 passed, 3 skipped, 0 failed (206 collected). Skips: MySQL credentials not configured (`test_database_connection.py`); live AI tests require `RUN_LIVE_AI_TESTS=1` (`test_demo_maria.py`); live Ollama safety check requires `RUN_LIVE_AI_TESTS=1` (`test_ollama.py`); `git diff --check` passed
 - **Open issues:** The owner `/ask` route returns the neutral reply until Prolog exposes an `owner/1` fact. API state and rate-limit storage are process-local; a multi-worker deployment needs shared persistence/storage. No MySQL, CORS, or mobile work was added.
+- **Verified by:** review pending
+
+### Standalone setup check `[x]`
+- [x] Print Python and required-package status
+- [x] Locate and print SWI-Prolog version
+- [x] Query summary and verbatim access through `PrologAccessBridge`
+- [x] Fail non-zero for missing dependencies or Prolog
+- **Paradigm:** Scripting infrastructure validation
+- **Files changed:** `backend/scripts/check_setup.py`, `backend/tests/test_check_setup.py`
+- **Tests:** `python scripts/check_setup.py` passed; full suite `python -m pytest -q` (203 passed, 3 skipped)
 - **Verified by:** review pending
 
 ### F10 – Letter of Wishes `[ ]`
@@ -300,6 +312,7 @@ Device trust, recovery codes, password reset, full trustee verification workflow
 | 2026-11-12 | Start a NEW project (no existing code) | Clean foundation; TLS configured correctly from the start; mobile app postponed until instructor approves |
 | 2026-11-12 | Git + GitHub with feature branches and reviewed PRs | Handout requires version control; PR reviewer doubles as AI-code verifier |
 | 2026-11-16 | AI provider = Ollama or fake; remove Gemini | Keep provider behavior local and optional for tests/demos while retaining one provider-neutral `ModelClient` interface |
+| 2026-11-20 | Added standalone setup checker | Local validation must not require `.env`, network, model setup, or database configuration |
 
 ## Weekly log
 | Week | What was done | Next |
