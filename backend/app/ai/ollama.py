@@ -305,7 +305,7 @@ class OllamaClient:
             finally:
                 connection.close()
 
-            return _parse_response(response_body)
+            return _parse_response(response_body, prompt)
         except _ProviderFailure as failure:
             _raise_unavailable(failure)
         except Exception as error:
@@ -377,7 +377,10 @@ def _read_bounded_response(
             raise _ProviderFailure("ResponseTooLarge", "response_size_limit")
 
 
-def _parse_response(response_body: bytes) -> ModelResponse:
+def _parse_response(
+    response_body: bytes,
+    prompt: ModelPrompt | None = None,
+) -> ModelResponse:
     try:
         decoded = json.loads(response_body)
     except (UnicodeDecodeError, json.JSONDecodeError):
@@ -399,10 +402,26 @@ def _parse_response(response_body: bytes) -> ModelResponse:
                 calls.append(ToolCall("", None))
                 continue
             name = function.get("name")
+            arguments = function.get("arguments")
+            if (
+                name == "search_entries"
+                and isinstance(arguments, Mapping)
+                and set(arguments) == {"text", "citation_ids"}
+                and prompt is not None
+            ):
+                user_text = next(
+                    (
+                        message.content
+                        for message in reversed(prompt.messages)
+                        if message.role == "user"
+                    ),
+                    "",
+                )
+                arguments = {"query": user_text}
             calls.append(
                 ToolCall(
                     name if isinstance(name, str) else "",
-                    function.get("arguments"),
+                    arguments,
                 )
             )
         return ModelResponse("", tool_calls=tuple(calls))

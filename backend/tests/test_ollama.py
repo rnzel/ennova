@@ -228,6 +228,32 @@ def test_unknown_tool_names_and_malformed_arguments_are_preserved_for_service_fi
     assert response.tool_calls[2].arguments is None
 
 
+def test_small_model_response_schema_leak_is_normalized_for_search_entries():
+    prompt, body = _prompt(
+        content="",
+        calls=[
+            _tool_call(
+                "search_entries",
+                {"text": "search_entries", "citation_ids": []},
+            )
+        ],
+        messages=(
+            PromptMessage(
+                "user",
+                "What did he write about family?",
+            ),
+        ),
+    )
+    client, _ = _client(FakeResponse(body))
+
+    response = client.complete(prompt)
+
+    assert response.tool_calls[0].name == "search_entries"
+    assert response.tool_calls[0].arguments == {
+        "query": "What did he write about family?"
+    }
+
+
 @pytest.mark.parametrize(
     "content",
     (
