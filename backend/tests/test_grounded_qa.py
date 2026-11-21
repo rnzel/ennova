@@ -33,6 +33,7 @@ from app.errors import (
     ACCESS_DENIED_PUBLIC_MESSAGE,
     AIServiceUnavailable,
     TamperDetected,
+    LETTER_OF_WISHES_DISCLAIMER,
 )
 from app.policy import (
     AppFacts,
@@ -263,6 +264,7 @@ def test_six_maria_scenarios_end_to_end_with_scripted_model(
     )
     assert before_release.text == "That letter will be available on 2040-05-01."
     assert before_release.citations == ()
+    assert before_release.disclaimer == LETTER_OF_WISHES_DISCLAIMER
     assert before_model.prompts == []
     tool_results.clear()
 
@@ -290,6 +292,7 @@ def test_six_maria_scenarios_end_to_end_with_scripted_model(
         "e_letter",
     )
     assert after_release.text == "The letter says: remember this small story about kindness."
+    assert after_release.disclaimer == LETTER_OF_WISHES_DISCLAIMER
     assert len(after_model.prompts) == 2
     letter_prompt_text = "\n".join(
         prompt.system_prompt + "\n"
@@ -322,6 +325,7 @@ def test_six_maria_scenarios_end_to_end_with_scripted_model(
         sample, "What did he think about his business?", business_model
     )
     assert business == GroundedResponse(NEUTRAL_REPLY)
+    assert business.disclaimer is None
     assert len(business_model.prompts) == 1
     business_prompt_text = "\n".join(
         prompt.system_prompt + "\n"

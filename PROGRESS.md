@@ -242,9 +242,14 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Tests:** `python scripts/check_setup.py` passed; full suite `python -m pytest -q` (203 passed, 3 skipped)
 - **Verified by:** review pending
 
-### F10 – Letter of Wishes `[ ]`
-- [ ] Letter entries with recipient and release date
-- [ ] Always-visible "not a legal will" disclaimer
+### F10 – Letter of Wishes `[~]`
+- [x] Letter entries with recipient and policy-based release date
+- [x] Always-visible "not a legal will" disclaimer in entry and released/pre-release Q&A responses
+- [ ] Dedicated Letter of Wishes interface or mobile presentation
+- **Paradigm:** Scripting API/grounded-QA boundary with Logic-based release rules
+- **Files changed:** `backend/app/errors/base.py`, `backend/app/errors/__init__.py`, `backend/app/ai/citations.py`, `backend/app/routes/entries.py`, `backend/app/routes/ask.py`, `backend/app/services/grounded_qa.py`, `backend/scripts/demo_maria.py`, `backend/tests/test_api.py`, `backend/tests/test_grounded_qa.py`, `backend/tests/test_demo_maria.py`, `README.md`, `docs/api-and-configuration.md`
+- **Tests:** Disclaimers are tested on letter entry create/list, released and pre-release Q&A responses, demo output, and neutral responses
+- **Verified by:** review pending
 
 ### F11 – Mobile interface (Expo) `[ ]`
 - [ ] Sign-in, write entries, policy builder (templates + plain-language preview + advanced editor), ask questions, cited answers, denied-access messages

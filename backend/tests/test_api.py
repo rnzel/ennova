@@ -10,7 +10,7 @@ from app import create_app
 from app.ai.client import FakeModelClient, ModelResponse, ToolCall
 from app.ai.prompts import NEUTRAL_REPLY
 from app.ai.summaries import FakeSummarizer
-from app.errors import AIServiceUnavailable
+from app.errors import AIServiceUnavailable, LETTER_OF_WISHES_DISCLAIMER
 
 
 class Clock:
@@ -95,6 +95,45 @@ def test_owner_entry_is_saved_and_summary_failure_does_not_change_response():
     assert response.status_code == 201
     assert client.get("/entries", headers=auth(token)).get_json()["entries"]
     assert "summary" not in response.get_json()
+
+
+def test_letter_disclaimer_is_single_definition_and_omitted_for_diary_entries():
+    app, _ = build_app()
+    client = app.test_client()
+    token = register_owner(client)
+
+    diary = client.post(
+        "/entries",
+        headers=auth(token),
+        json={
+            "entry_id": "diary-1",
+            "kind": "diary",
+            "content": "A fictional diary entry.",
+        },
+    )
+    letter = client.post(
+        "/entries",
+        headers=auth(token),
+        json={
+            "entry_id": "letter-1",
+            "kind": "letter",
+            "content": "A fictional letter.",
+            "title": "A fictional letter title",
+            "recipient": "maria",
+        },
+    )
+    listed = client.get("/entries", headers=auth(token)).get_json()["entries"]
+
+    assert diary.status_code == 201
+    assert "disclaimer" not in diary.get_json()
+    assert letter.status_code == 201
+    assert letter.get_json()["disclaimer"] == LETTER_OF_WISHES_DISCLAIMER
+    assert next(
+        item for item in listed if item["entry_id"] == "diary-1"
+    ).get("disclaimer") is None
+    assert next(
+        item for item in listed if item["entry_id"] == "letter-1"
+    )["disclaimer"] == LETTER_OF_WISHES_DISCLAIMER
 
 
 def test_bearer_auth_has_same_body_shape_for_401_and_403():
@@ -260,6 +299,7 @@ def test_maria_http_scenario_release_boundary_and_nora_neutral(swipl_executable)
     assert before.get_json()["answer"] == (
         "That letter will be available on 2040-05-01."
     )
+    assert before.get_json()["disclaimer"] == LETTER_OF_WISHES_DISCLAIMER
     clock.advance(days=1)
     maria_token = client.post(
         "/auth/login",
@@ -274,6 +314,7 @@ def test_maria_http_scenario_release_boundary_and_nora_neutral(swipl_executable)
     assert after.status_code == 200 and "A message for Maria." in after_body.get(
         "answer", ""
     ), (after.status_code, after_body)
+    assert after_body["disclaimer"] == LETTER_OF_WISHES_DISCLAIMER
     nora_registration = client.post(
         "/auth/register-beneficiary",
         json={

@@ -42,12 +42,13 @@ def ask():
         app_facts=facts,
         today=current_app.extensions["today"](),
     )
-    return jsonify(
-        {
-            "answer": response.text,
-            "citations": [
-                {"entry_id": item.entry_id, "date": item.entry_date.isoformat()}
-                for item in response.citations
-            ],
-        }
-    ), 200
+    payload = {
+        "answer": response.text,
+        "citations": [
+            {"entry_id": item.entry_id, "date": item.entry_date.isoformat()}
+            for item in response.citations
+        ],
+    }
+    if response.disclaimer is not None:
+        payload["disclaimer"] = response.disclaimer
+    return jsonify(payload), 200

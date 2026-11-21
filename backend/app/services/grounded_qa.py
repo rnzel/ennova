@@ -37,6 +37,7 @@ from app.errors import (
     AIServiceUnavailable,
     AccessDenied,
     AmbiguousName,
+    LETTER_OF_WISHES_DISCLAIMER,
     PolicyFrozen,
     PolicySyntaxError,
     TamperDetected,
@@ -203,7 +204,10 @@ class GroundedQAService:
             question, statuses, release_dates
         )
         if date_message is not None:
-            return GroundedResponse(date_message)
+            return GroundedResponse(
+                date_message,
+                disclaimer=LETTER_OF_WISHES_DISCLAIMER,
+            )
         if self._letter_request_without_access(question, statuses):
             return GroundedResponse(NEUTRAL_REPLY)
         if permitted_count == 0:

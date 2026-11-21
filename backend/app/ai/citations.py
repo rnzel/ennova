@@ -6,7 +6,8 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Mapping
 
-from app.domain.diary import StoredEntry
+from app.domain.diary import LetterEntry, StoredEntry
+from app.errors import LETTER_OF_WISHES_DISCLAIMER
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,6 +24,7 @@ class GroundedResponse:
 
     text: str
     citations: tuple[Citation, ...] = ()
+    disclaimer: str | None = None
 
 
 def attach_citations(
@@ -48,4 +50,12 @@ def attach_citations(
         citations.append(
             Citation(entry_id, record.entry.created_at.date())
         )
-    return GroundedResponse(text, tuple(citations))
+    contains_letter = any(
+        isinstance(permitted_entries[citation.entry_id].entry, LetterEntry)
+        for citation in citations
+    )
+    return GroundedResponse(
+        text,
+        tuple(citations),
+        LETTER_OF_WISHES_DISCLAIMER if contains_letter else None,
+    )

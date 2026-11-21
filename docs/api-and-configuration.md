@@ -17,6 +17,11 @@ All endpoints are defined by the Flask routes in `backend/app/routes/`, except `
 | POST | `/death-trigger` | Trigger the death state and freeze policy | Owner bearer token |
 | POST | `/ask` | Ask a grounded question | Any bearer token |
 
+Letter responses include a `disclaimer` field:
+`Letters of Wishes in ENNOVA are personal messages and are not legal wills or substitutes for legally executed estate documents. ENNOVA does not provide legal advice.`
+
+The disclaimer appears for letter creation/listing, released-letter answers, and pre-release letter-date answers. It does not appear in diary entries or neutral denied/no-record answers.
+
 ## Environment variables
 
 Defaults below are the application's defaults in `backend/app/config.py`, unless noted otherwise. `backend/.env.example` also supplies example values for the variables marked as template-only.
