@@ -232,6 +232,17 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Open issues:** The owner `/ask` route returns the neutral reply until Prolog exposes an `owner/1` fact. API state and rate-limit storage are process-local; a multi-worker deployment needs shared persistence/storage. No MySQL, CORS, or mobile work was added.
 - **Verified by:** review pending
 
+### F9b – Globally unique email registration `[~]`
+- [x] Require normalized username and email for owner and invitation-based beneficiary registration
+- [x] Enforce global username/email uniqueness atomically in the existing in-memory account repository
+- [x] Consume beneficiary invitations in the same repository operation as account insertion
+- [x] Return safe typed 409 conflicts and validate registration fields
+- [ ] Update the mobile Create Account screen (mobile source is not present in this checkout)
+- **Files changed:** account models/repository, auth service/routes/errors, account and API tests
+- **Tests:** registration/API subset: 38 passed, 2 deselected; full backend suite: 209 passed, 4 skipped, 1 failed due SWI-Prolog invocation timeout; `git diff --check` passed
+- **Database:** no account table or account migration exists in this checkout; app registration uses `InMemoryUserRepository`
+- **Verified by:** Codex, 2026-11-21
+
 ### Standalone setup check `[x]`
 - [x] Print Python and required-package status
 - [x] Locate and print SWI-Prolog version

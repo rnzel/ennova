@@ -50,7 +50,7 @@ def build_app(
 def register_owner(client):
     response = client.post(
         "/auth/register-owner",
-        json={"username": "lola", "password": "owner-password-123"},
+        json={"username": "lola", "email": "lola@example.com", "password": "owner-password-123"},
     )
     assert response.status_code == 201
     login = client.post(
@@ -156,6 +156,7 @@ def test_bearer_auth_has_same_body_shape_for_401_and_403():
         json={
             "invitation_code": invitation,
             "username": "adam_jr",
+            "email": "adam@example.com",
             "password": "beneficiary-password-123",
         },
     )
@@ -259,6 +260,7 @@ def test_maria_http_scenario_release_boundary_and_nora_neutral(swipl_executable)
         json={
             "invitation_code": code,
             "username": "adam_jr",
+            "email": "adam@example.com",
             "password": "beneficiary-password-123",
         },
     )
@@ -320,6 +322,7 @@ def test_maria_http_scenario_release_boundary_and_nora_neutral(swipl_executable)
         json={
             "invitation_code": nora_code,
             "username": "nora_user",
+            "email": "nora@example.com",
             "password": "nora-password-123",
         },
     )

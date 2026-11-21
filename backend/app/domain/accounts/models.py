@@ -20,6 +20,7 @@ class UserAccount:
 
     account_id: str
     username: str
+    email: str
     owner_id: str
     person_id: str
     role: AccountRole

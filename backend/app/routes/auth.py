@@ -12,6 +12,12 @@ from app.routes.common import bearer_required, current_account, json_body, limit
 auth_bp = Blueprint("auth", __name__)
 
 
+def _required_strings(body, *fields):
+    """Reject missing or non-string registration values as a client error."""
+    if any(not isinstance(body.get(field), str) for field in fields):
+        raise ValueError("required string field missing")
+
+
 def _account_payload(account):
     return {
         "account_id": account.account_id,
@@ -26,8 +32,9 @@ def _account_payload(account):
 @limiter.limit("3 per hour")
 def register_owner():
     body = json_body()
+    _required_strings(body, "username", "email", "password")
     account = current_app.extensions["auth_service"].register_owner(
-        body["username"], body["password"]
+        body["username"], body["email"], body["password"]
     )
     return jsonify(_account_payload(account)), 201
 
@@ -46,8 +53,9 @@ def login():
 @limiter.limit("3 per hour")
 def register_beneficiary():
     body = json_body()
+    _required_strings(body, "invitation_code", "username", "email", "password")
     account = current_app.extensions["auth_service"].redeem_invitation(
-        body["invitation_code"], body["username"], body["password"]
+        body["invitation_code"], body["username"], body["email"], body["password"]
     )
     return jsonify(_account_payload(account)), 201
 

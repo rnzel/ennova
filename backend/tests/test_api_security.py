@@ -48,7 +48,7 @@ def register_owner(client, username: str = "lola") -> str:
     password = f"{username}-owner-password"
     assert client.post(
         "/auth/register-owner",
-        json={"username": username, "password": password},
+        json={"username": username, "email": f"{username}@example.com", "password": password},
     ).status_code == 201
     response = client.post(
         "/auth/login",
@@ -81,6 +81,7 @@ def redeem(client, code: str, username: str = "maria_user") -> str:
         json={
             "invitation_code": code,
             "username": username,
+            "email": f"{username}@example.com",
             "password": f"{username}-beneficiary-password",
         },
     )
@@ -199,6 +200,7 @@ def test_identity_fields_in_registration_body_are_ignored():
         json={
             "invitation_code": code,
             "username": "adam_jr",
+            "email": "adam@example.com",
             "password": "adam_jr-beneficiary-password",
             "owner_id": "attacker-owner",
             "role": "owner",
@@ -210,6 +212,46 @@ def test_identity_fields_in_registration_body_are_ignored():
     assert body["role"] == "beneficiary"
     assert body["owner_id"] == owner.account_id
     assert body["person_id"] == "maria"
+
+
+def test_registration_conflicts_are_safe_and_return_clear_409_messages():
+    app = build_app()
+    client = app.test_client()
+    assert client.post(
+        "/auth/register-owner",
+        json={"username": "maria", "email": "maria@example.com", "password": "first-password-123"},
+    ).status_code == 201
+
+    username_conflict = client.post(
+        "/auth/register-owner",
+        json={"username": " MARIA ", "email": "other@example.com", "password": "second-password-123"},
+    )
+    email_conflict = client.post(
+        "/auth/register-owner",
+        json={"username": "other", "email": "MARIA@example.com", "password": "third-password-123"},
+    )
+    for response in (username_conflict, email_conflict):
+        assert response.status_code == 409
+        body = response.get_json()
+        assert "account_id" not in body
+        assert "password" not in response.get_data(as_text=True).lower()
+        assert "hash" not in response.get_data(as_text=True).lower()
+    assert "username" in username_conflict.get_json()["message"].lower()
+    assert "email" in email_conflict.get_json()["message"].lower()
+
+
+def test_registration_requires_valid_email_and_returns_400():
+    app = build_app()
+    client = app.test_client()
+    missing_email = client.post(
+        "/auth/register-owner",
+        json={"username": "maria", "password": "first-password-123"},
+    )
+    invalid_email = client.post(
+        "/auth/register-owner",
+        json={"username": "maria", "email": "not-an-email", "password": "first-password-123"},
+    )
+    assert missing_email.status_code == invalid_email.status_code == 400
 
 
 def test_unknown_exception_canary_is_not_public_or_audited(monkeypatch):
