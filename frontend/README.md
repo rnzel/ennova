@@ -38,7 +38,7 @@ beneficiaries, access policy, Q&A, settings, and a beneficiary preview.
 
 ## Limitations
 
-The app is a frontend skeleton. Sign-in is simulated; data is held in memory and
-resets when the app restarts. There is no backend/API or AI connection, and the
-frontend does not enforce authorization. Use fictional data only; never enter
-real diary content or credentials.
+The app has connected API login/registration, entry, and policy surfaces. JWT
+tokens are held in memory and reset on restart. Entry, beneficiary, invitation,
+and Q&A surfaces outside those connections remain mock or incomplete. The
+frontend does not enforce authorization; use fictional data only.
