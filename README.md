@@ -45,8 +45,7 @@ Install Node.js (npm is included), then from the project root:
 4. Scan the QR code with Expo Go, or press `a` to open an available Android emulator.
 5. Run `npm run typecheck` to check the TypeScript project.
 
-A native iOS build requires macOS and Xcode. The Vite app at `frontend/` is kept
-as a browser-only prototype; it is not the mobile app.
+A native iOS build requires macOS and Xcode.
 
 The current native app is a UI skeleton: sign-in is simulated, and diary,
 beneficiary, policy, and Q&A data remain local sample content. No backend or AI
@@ -62,7 +61,6 @@ teal, and pale cyan.
 | `frontend/mobile/app/` | Mobile routes and tab navigation |
 | `frontend/mobile/components/` | Reusable native UI components |
 | `frontend/mobile/data/` | Fictional frontend prototype data |
-| `frontend/src/` | Preserved Vite browser prototype |
 | `backend/app/` | Backend source code (domain, services, routes, AI) |
 | `backend/app/policy/` | Policy language and the Prolog rules in `access_rules.pl` |
 | `backend/scripts/` | Demo script |

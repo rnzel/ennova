@@ -2,7 +2,7 @@
 
 Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
 > Course: CS 413 – Programming Languages Final Project
-> Scope: front end only (`frontend/mobile/`, Expo). Backend progress lives in `PROGRESS.md`. `frontend/src/` is the preserved Vite prototype and is reference only.
+> Scope: front end only (`frontend/mobile/`, Expo). Backend progress lives in `PROGRESS.md`.
 
 **Current feature:** F11a – Mobile UI skeleton `[~]`
 **Rule:** one feature at a time. Finish, test, update this file, get approval, then move on.
@@ -138,11 +138,10 @@ Device trust, recovery codes, password reset, full trustee verification workflow
 
 ---
 
-## Browser prototype (reference only)
-- [x] Vite app in `frontend/src/` with intro, sign-in, beneficiary, owner entries, editor, detail, beneficiaries, policy, Q&A, settings, and not-found routes
-- [ ] Decision: keep, remove, or freeze as reference only
-- [ ] Remove unused assets (`react.svg`, `vite.svg`, `hero.png`) if the prototype is kept
-- **Rule:** do not extend it; new work goes in `frontend/mobile/`.
+## Browser prototype
+- [x] Vite browser prototype removed; only `frontend/mobile/` remains as the frontend
+- [x] Decision: remove
+- [x] Unused Vite assets removed with the prototype
 
 ---
 
@@ -175,7 +174,7 @@ Device trust, recovery codes, password reset, full trustee verification workflow
 |---|---|---|
 | 2026-11-12 | UI builder generates policy text through the parser | Keeps Language Design component real (from `PROGRESS.md`) |
 | 2026-11-12 | Mobile app postponed until instructor approves | Mobile is a listed extra (from `PROGRESS.md`) |
-| 2026-11-20 | Primary front end is the Expo app in `frontend/mobile/`; Vite app is reference only | Repo docs state the mobile app is the intended target (recorded from audit) |
+| 2026-11-20 | Vite browser prototype removed; frontend/mobile/ is the only frontend | Reduce confusion; mobile is the intended target |
 | 2026-11-20 | Skeleton state uses React Context with fictional in-memory data | Lets screens be built before the backend API is wired (recorded from audit) |
 
 ## Weekly log

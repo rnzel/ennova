@@ -5,7 +5,6 @@ These instructions cover the **frontend only**. They extend the repository-wide 
 ## 1. Scope
 
 - Work only in `frontend/mobile/` (Expo / React Native). This is the primary frontend.
-- `frontend/src/` is a preserved Vite browser prototype. Do not change it unless explicitly asked.
 - Do not edit anything under `backend/`. The frontend may only describe the API it needs; it must not implement server logic.
 - Never edit native directories (`android/`, `ios/`) by hand.
 
@@ -117,7 +116,7 @@ Run from `frontend/mobile/`:
 
 ## 14. Do not
 
-- Do not touch `backend/`, `frontend/src/`, `android/`, or `ios/`.
+- Do not touch `backend/`, `android/`, or `ios/`.
 - Do not add dependencies without approval.
 - Do not implement real auth, authorization, or API calls until the backend contract is confirmed.
 - Do not invent endpoints, env variable names, or Node version requirements; none are documented yet.
@@ -130,4 +129,3 @@ Run from `frontend/mobile/`:
 - Whether state should persist locally or the backend is the source of truth.
 - Required test framework and accessibility standard.
 - Whether mobile feature F11 is approved for scope (instructor approval pending per `PROGRESS.md`).
-- Whether the Vite prototype stays, goes, or becomes reference-only.
