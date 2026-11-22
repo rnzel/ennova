@@ -4,6 +4,11 @@
 ACCESS_DENIED_PUBLIC_MESSAGE = (
     "I couldn’t find any information in the records available to me."
 )
+LETTER_OF_WISHES_DISCLAIMER = (
+    "Letters of Wishes in ENNOVA are personal messages and are not legal wills "
+    "or substitutes for legally executed estate documents. ENNOVA does not "
+    "provide legal advice."
+)
 GENERIC_ERROR_CODE = "internal_error"
 GENERIC_PUBLIC_MESSAGE = "An unexpected error occurred."
 

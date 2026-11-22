@@ -114,4 +114,9 @@ class ConflictError(EnnovaError):
 
     def __init__(self, detail: object | None = None) -> None:
         """Create a generic conflict response."""
-        super().__init__("conflict", "The requested resource already exists.", detail)
+        field = detail.get("field") if isinstance(detail, dict) else None
+        message = {
+            "username": "That username is already in use.",
+            "email": "That email address is already in use.",
+        }.get(field, "The requested resource already exists.")
+        super().__init__("conflict", message, detail)

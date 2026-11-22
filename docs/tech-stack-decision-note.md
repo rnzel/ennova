@@ -16,9 +16,10 @@ Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back E
 
 ## Trade-offs we accept
 - Python is not purely functional, so purity is enforced by convention and by tests that forbid I/O imports in the functional package.
-- A 3B local model on a CPU-only laptop is slow and calls tools unreliably. Backend-built answers work live, and the rest uses the fake provider.
+- Live Ollama (`llama3.2:3b`) on CPU-only hardware is slow and can repeat invalid tool calls until timeout. The release-date and neutral replies are built by the backend; other live rows may time out. See `docs/ai-design-note.md`.
 - The Gemini client, ChromaDB, and sentence-transformers were considered and are not used.
 
 ## Versions
-Python 3.12.x, SWI-Prolog <fill in>, and the pinned packages in `backend/requirements.txt`.
+Python 3.12.x, SWI-Prolog 11.0.0 for x64-win64, and the pinned packages in `backend/requirements.txt`.
 SWI-Prolog and Ollama are installed separately.
+The full test suite passes on Python 3.14.7 in this development environment; Python 3.12.x remains the documented target.

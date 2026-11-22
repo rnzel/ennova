@@ -2,6 +2,7 @@
 # Paradigm: Grounded AI orchestration and fail-closed service glue
 from __future__ import annotations
 
+import json
 import time
 from collections.abc import Mapping
 from datetime import date, datetime
@@ -36,6 +37,7 @@ from app.errors import (
     AIServiceUnavailable,
     AccessDenied,
     AmbiguousName,
+    LETTER_OF_WISHES_DISCLAIMER,
     PolicyFrozen,
     PolicySyntaxError,
     TamperDetected,
@@ -202,7 +204,10 @@ class GroundedQAService:
             question, statuses, release_dates
         )
         if date_message is not None:
-            return GroundedResponse(date_message)
+            return GroundedResponse(
+                date_message,
+                disclaimer=LETTER_OF_WISHES_DISCLAIMER,
+            )
         if self._letter_request_without_access(question, statuses):
             return GroundedResponse(NEUTRAL_REPLY)
         if permitted_count == 0:
@@ -340,7 +345,9 @@ class GroundedQAService:
         )
         if matched_titles:
             return any(statuses[title] != "released" for title in matched_titles)
-        return "letter" in folded_question
+        if '"' in folded_question:
+            return True
+        return False
 
     def _run_tool_loop(
         self,
@@ -350,6 +357,7 @@ class GroundedQAService:
     ) -> GroundedResponse:
         messages = [PromptMessage("user", question)]
         presented_entries: dict[str, StoredEntry] = {}
+        seen_signatures: set[tuple[str, str]] = set()
         steps = 0
         while steps < self._max_tool_steps:
             if time.monotonic() >= deadline_monotonic:
@@ -383,6 +391,22 @@ class GroundedQAService:
                 if steps >= self._max_tool_steps:
                     raise AIServiceUnavailable(detail="tool-call step limit reached")
                 steps += 1
+                signature = (
+                    call.name if isinstance(call, ToolCall) else "",
+                    json.dumps(
+                        call.arguments,
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        default=repr,
+                    )
+                    if isinstance(call, ToolCall)
+                    else "",
+                )
+                if signature in seen_signatures:
+                    raise AIServiceUnavailable(
+                        detail="repeated model tool-call signature"
+                    )
+                seen_signatures.add(signature)
                 result = self._execute_tool(call, context)
                 if result is None:
                     continue
@@ -422,7 +446,14 @@ class GroundedQAService:
                     )
                 if not rendered:
                     return GroundedResponse(NEUTRAL_REPLY)
-                messages.append(PromptMessage("tool", "\n".join(rendered)))
+                messages.append(
+                    PromptMessage(
+                        "tool",
+                        "\n".join(rendered)
+                        + "\nNow summarize the permitted record blocks above "
+                        "and return exact entry_id values in citation_ids.",
+                    )
+                )
             if not executed and response.text:
                 return self._final_response(response, presented_entries)
             if not executed and not response.text and steps >= self._max_tool_steps:

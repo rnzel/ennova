@@ -4,6 +4,7 @@ from .base import (
     ACCESS_DENIED_PUBLIC_MESSAGE,
     GENERIC_ERROR_CODE,
     GENERIC_PUBLIC_MESSAGE,
+    LETTER_OF_WISHES_DISCLAIMER,
     EnnovaError,
     to_public_response,
 )
@@ -30,6 +31,7 @@ __all__ = [
     "EnnovaError",
     "GENERIC_ERROR_CODE",
     "GENERIC_PUBLIC_MESSAGE",
+    "LETTER_OF_WISHES_DISCLAIMER",
     "PolicyFrozen",
     "PolicySyntaxError",
     "TamperDetected",

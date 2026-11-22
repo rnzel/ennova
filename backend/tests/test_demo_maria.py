@@ -14,6 +14,7 @@ import pytest
 from app.ai.client import ModelPrompt, ModelResponse, PromptMessage, ToolCall
 from app.errors import AIServiceUnavailable
 from app.ai.prompts import NEUTRAL_REPLY
+from app.errors import LETTER_OF_WISHES_DISCLAIMER
 from app.ai.summaries import FakeSummarizer, InMemorySummaryStore, store_derived_summary
 from app.domain.diary import InMemoryEntryRepository
 from app.domain.processing import PersonReference
@@ -63,6 +64,8 @@ def test_fake_letter_row_changes_with_custom_date(swipl_executable):
     assert before.returncode == after.returncode == 0
     assert "That letter will be available on 2040-05-01." in before.stdout
     assert "My dearest daughter" in after.stdout
+    assert LETTER_OF_WISHES_DISCLAIMER in before.stdout
+    assert LETTER_OF_WISHES_DISCLAIMER in after.stdout
 
 
 def test_fake_rows_business_and_nora_are_byte_identical_at_response_boundary(

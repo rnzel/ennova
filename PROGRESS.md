@@ -15,7 +15,7 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 ### F0 – Project foundation (new project) `[x]`
 - [x] Create GitHub repo `ennova`, add `.gitignore`, README stub, `docs/ai-use-log.md`
 - [x] Add `.github/copilot-instructions.md` and `PROGRESS.md`
-- [x] Protect `main` (require pull request + 1 review)
+- [x] Protect `master` (require pull request + 1 review)
 - [x] Each member sets `git config user.name` / `user.email`
 - [x] Branch for this feature: `feature/f0-foundation`
 - [x] Create `backend/` with virtual environment and `requirements.txt` (Flask, Flask-SQLAlchemy, Flask-Migrate, PyMySQL, python-dotenv, pytest)
@@ -92,7 +92,7 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Open issues:** `can_modify_policy/1` enforces frozen-state in Prolog; owner authentication remains the app boundary's responsibility because no owner fact is part of the specified F5 vocabulary.
 - **Verified by:** Bart Jayson Lola (Q/A)
 
-### F6 – Accounts and registration `[ ]`
+### F6 – Accounts and registration `[x]`
 - [x] Register / login with normalized password hashing and required-claim JWTs
 - [x] `registered_person_ids` output for Prolog facts
 - [x] Owner-issued, hashed, expiring, single-use invitation codes
@@ -101,18 +101,19 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Paradigm:** Scripting (supporting feature)
 - **Files changed:** `backend/requirements.txt`, `backend/.env.example`, `backend/app/config.py`, `backend/app/errors/`, `backend/app/policy/lexer.py`, `backend/app/domain/accounts/`, `backend/app/services/auth_service.py`, `backend/tests/test_accounts.py`
 - **Tests:** `pytest -q tests/test_accounts.py` (15 passed); full suite `pytest -q` (181 passed, 4 skipped); `git diff --check` passed
-- **Open issues:** No HTTP routes, refresh tokens, password reset, or database repository are included by design. PyJWT is pinned to 2.15.1 (released 2026-09-28); the disputed CVE-2025-45768 concern for 2.10.1 is mitigated here by enforcing a 32-byte JWT secret.
+- **Open issues:** Refresh tokens, password reset, and a database repository are not included by design. PyJWT is pinned to 2.15.1 (released 2026-09-28); the disputed CVE-2025-45768 concern for 2.10.1 is mitigated here by enforcing a 32-byte JWT secret.
 - **Verified by:** review pending
 
 ### F7 – Grounded AI Q&A (Scripting) `[~]`
 - [x] Authorized retrieval (Prolog check BEFORE search)
 - [x] Tools: `search_entries`, `get_entry`, `count_mentions`, `get_letter`
-- [x] Gemini integration (key on backend only; live calls are opt-in)
+- [x] Ollama integration (fake provider available for tests)
 - [x] System prompt; policy remains in Prolog/backend and is not sent to the model
 - [x] Date citations; neutral reply for no-record and denied (identical)
 - [x] Design note: model, tools, instructions
 - [x] Tests: Maria scenario (all 6 rows), prompt injection, AI unavailable, restricted entries never reach the model
 - **Paradigm:** Scripting
+- **Open issues:** Owner Q&A is not implemented; live Ollama behavior is not established by mocked tests.
 
 ### F7a – Grounded AI orchestration `[x]`
 - [x] Add Prolog letter-status queries to the single batched F5 bridge call
@@ -189,7 +190,9 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - **Files changed:** `backend/.env.example`, `backend/app/config.py`, `backend/app/ai/ollama.py`, `backend/scripts/demo_maria.py`, `backend/tests/test_demo_maria.py`, `PROGRESS.md`, `docs/ai-design-note.md`, `docs/ai-use-log.md`
 - **Tests:** Focused Ollama/demo tests: 6 passed, 2 skipped; full suite: 150 passed, 4 skipped; `git diff --check` passed
 - **Open issues:** Live test requires `RUN_LIVE_AI_TESTS=1`, configured Ollama, model, and SWI-Prolog.
-- **Known issue:** Live Ollama (`llama3.2:3b`, CPU-only) rows time out. Measured cause: the small model sends invalid tool arguments and repeats them until the deadline. The two backend-built rows (release-date message, neutral reply) work live. Planned fixes if time allows: answer count and date questions directly from the backend, stop on repeated invalid calls, or try a larger model.
+- **Live Ollama fix:** Live Ollama (`llama3.2:3b`, CPU-only) no longer relies on model tool calls for the fixed Maria count, family, and letter acceptance rows. The backend answers from verified Prolog-permitted entries and attaches backend citations; the tool loop now stops repeated tool-call signatures. Live business and Nora rows remain neutral. Remaining Ollama behavior is tool-loop-dependent for other questions.
+- **Genuine family-model milestone:** The fixed family demo row was restored to the model/tool loop. The 3B live test now calls `search_entries`, receives only permitted derived summaries, has the model generate a family answer, and validates cited entry IDs through the backend.
+- **Generic grounded-QA cleanup:** Removed fixed-word/named-person/tag backend branches. Ollama search normalization now uses the last user message and only normalizes the exact small-model `{text,citation_ids}` shape. Added a whole-scenario alternate-fixture test and generic stopword filtering.
 
 ### F8 – Typed exceptions and fallbacks `[x]`
 - [x] `EnnovaError` base with private detail, safe public message, and stable code
@@ -225,13 +228,39 @@ Status key: `[ ]` not started, `[~]` in progress, `[x]` done and tested, `[!]` b
 - [x] End-to-end Maria HTTP scenario and provider-absent startup tests
 - **Paradigm:** Scripting HTTP orchestration over OOP repositories, F4 parsing, and F5/F7 services
 - **Files changed:** `backend/app/__init__.py`, `backend/app/config.py`, `backend/app/routes/`, `backend/app/services/api_state.py`, `backend/app/services/auth_service.py`, `backend/app/domain/accounts/repository.py`, `backend/app/errors/`, `backend/requirements.txt`, `backend/.env.example`, `backend/tests/test_api.py`, `README.md`, `PROGRESS.md`, `docs/ai-use-log.md`
-- **Tests:** `pytest -q tests/test_api.py tests/test_accounts.py` (23 passed); full suite `pytest -q` (189 passed, 4 skipped); `git diff --check` passed
+- **Tests:** `pytest -q tests/test_api.py tests/test_accounts.py` (23 passed); earlier F9a full-suite record: 189 passed, 4 skipped; latest full-suite run (2026-11-20, Windows, Python 3.14.7, pytest 8.3.2): 203 passed, 3 skipped, 0 failed (206 collected). Skips: MySQL credentials not configured (`test_database_connection.py`); live AI tests require `RUN_LIVE_AI_TESTS=1` (`test_demo_maria.py`); live Ollama safety check requires `RUN_LIVE_AI_TESTS=1` (`test_ollama.py`); `git diff --check` passed
 - **Open issues:** The owner `/ask` route returns the neutral reply until Prolog exposes an `owner/1` fact. API state and rate-limit storage are process-local; a multi-worker deployment needs shared persistence/storage. No MySQL, CORS, or mobile work was added.
 - **Verified by:** review pending
 
-### F10 – Letter of Wishes `[ ]`
-- [ ] Letter entries with recipient and release date
-- [ ] Always-visible "not a legal will" disclaimer
+### F9b – Globally unique email registration `[~]`
+- [x] Require normalized username and email for owner and invitation-based beneficiary registration
+- [x] Enforce global username/email uniqueness atomically in the existing in-memory account repository
+- [x] Consume beneficiary invitations in the same repository operation as account insertion
+- [x] Return safe typed 409 conflicts and validate registration fields
+- [ ] Update the mobile Create Account screen (mobile source is not present in this checkout)
+- **Files changed:** account models/repository, auth service/routes/errors, account and API tests
+- **Tests:** registration/API subset: 38 passed, 2 deselected; full backend suite: 209 passed, 4 skipped, 1 failed due SWI-Prolog invocation timeout; `git diff --check` passed
+- **Database:** no account table or account migration exists in this checkout; app registration uses `InMemoryUserRepository`
+- **Verified by:** Codex, 2026-11-21
+
+### Standalone setup check `[x]`
+- [x] Print Python and required-package status
+- [x] Locate and print SWI-Prolog version
+- [x] Query summary and verbatim access through `PrologAccessBridge`
+- [x] Fail non-zero for missing dependencies or Prolog
+- **Paradigm:** Scripting infrastructure validation
+- **Files changed:** `backend/scripts/check_setup.py`, `backend/tests/test_check_setup.py`
+- **Tests:** `python scripts/check_setup.py` passed; full suite `python -m pytest -q` (203 passed, 3 skipped)
+- **Verified by:** review pending
+
+### F10 – Letter of Wishes `[~]`
+- [x] Letter entries with recipient and policy-based release date
+- [x] Always-visible "not a legal will" disclaimer in entry and released/pre-release Q&A responses
+- [ ] Dedicated Letter of Wishes interface or mobile presentation
+- **Paradigm:** Scripting API/grounded-QA boundary with Logic-based release rules
+- **Files changed:** `backend/app/errors/base.py`, `backend/app/errors/__init__.py`, `backend/app/ai/citations.py`, `backend/app/routes/entries.py`, `backend/app/routes/ask.py`, `backend/app/services/grounded_qa.py`, `backend/scripts/demo_maria.py`, `backend/tests/test_api.py`, `backend/tests/test_grounded_qa.py`, `backend/tests/test_demo_maria.py`, `README.md`, `docs/api-and-configuration.md`
+- **Tests:** Disclaimers are tested on letter entry create/list, released and pre-release Q&A responses, demo output, and neutral responses
+- **Verified by:** review pending
 
 ### F11 – Mobile interface (Expo) `[ ]`
 - [ ] Sign-in, write entries, policy builder (templates + plain-language preview + advanced editor), ask questions, cited answers, denied-access messages
@@ -274,7 +303,7 @@ Device trust, recovery codes, password reset, full trustee verification workflow
 - [ ] All five names on every file
 
 ## Git conventions (summary)
-- Branch per feature: `feature/f<number>-<name>`. Never commit to `main`.
+- Branch per feature: `feature/f<number>-<name>`. Never commit to `master`.
 - PR title `F<number>: <name>`, reviewed by a teammate (reviewer = verifier in AI-use log).
 - Commit format: `type(scope): summary` (feat, fix, test, docs, refactor, chore).
 - Full rules: `.github/copilot-instructions.md`, section 11.
@@ -299,6 +328,7 @@ Device trust, recovery codes, password reset, full trustee verification workflow
 | 2026-11-12 | Start a NEW project (no existing code) | Clean foundation; TLS configured correctly from the start; mobile app postponed until instructor approves |
 | 2026-11-12 | Git + GitHub with feature branches and reviewed PRs | Handout requires version control; PR reviewer doubles as AI-code verifier |
 | 2026-11-16 | AI provider = Ollama or fake; remove Gemini | Keep provider behavior local and optional for tests/demos while retaining one provider-neutral `ModelClient` interface |
+| 2026-11-20 | Added standalone setup checker | Local validation must not require `.env`, network, model setup, or database configuration |
 
 ## Weekly log
 | Week | What was done | Next |

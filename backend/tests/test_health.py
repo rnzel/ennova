@@ -4,7 +4,7 @@ from app import create_app
 
 
 def test_health_endpoint():
-    app = create_app()
+    app = create_app(config_overrides={"TESTING": True})
     client = app.test_client()
 
     response = client.get("/health")

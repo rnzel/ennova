@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
+import time
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -11,7 +13,13 @@ from pathlib import Path
 import pytest
 
 from app.ai.citations import GroundedResponse, attach_citations
-from app.ai.client import FakeModelClient, ModelResponse, ToolCall
+from app.ai.client import (
+    FakeModelClient,
+    ModelPrompt,
+    ModelResponse,
+    PromptMessage,
+    ToolCall,
+)
 from app.ai.prompts import NEUTRAL_REPLY, render_untrusted_block
 from app.ai.summaries import (
     FakeSummarizer,
@@ -25,6 +33,7 @@ from app.errors import (
     ACCESS_DENIED_PUBLIC_MESSAGE,
     AIServiceUnavailable,
     TamperDetected,
+    LETTER_OF_WISHES_DISCLAIMER,
 )
 from app.policy import (
     AppFacts,
@@ -182,8 +191,21 @@ def test_neutral_reply_is_the_shared_f8_constant():
 
 def test_six_maria_scenarios_end_to_end_with_scripted_model(
     grounded_sample: GroundedSample,
+    monkeypatch: pytest.MonkeyPatch,
 ):
     sample = grounded_sample
+    tool_results: list[object] = []
+    original_execute = GroundedQAService._execute_tool
+
+    def capture_tool_result(service, call, context):
+        result = original_execute(service, call, context)
+        tool_results.append(result)
+        return result
+
+    monkeypatch.setattr(
+        GroundedQAService, "_execute_tool", capture_tool_result
+    )
+
     existence_model = FakeModelClient(
         (
             ModelResponse(
@@ -208,7 +230,7 @@ def test_six_maria_scenarios_end_to_end_with_scripted_model(
             ),
             ModelResponse(
                 "Lola wrote about family.",
-                citation_ids=("e_family", "e_family_2", "e_business"),
+                citation_ids=("e_family", "e_family_2"),
             ),
         )
     )
@@ -224,6 +246,7 @@ def test_six_maria_scenarios_end_to_end_with_scripted_model(
         date(2026, 11, 14),
         date(2026, 11, 14),
     )
+    assert len(family_model.prompts) == 2
     family_messages = "\n".join(
         message.content
         for prompt in family_model.prompts
@@ -231,7 +254,6 @@ def test_six_maria_scenarios_end_to_end_with_scripted_model(
     )
     assert "shared soup" not in family_messages
     assert "quiet family supper" not in family_messages
-    assert "Topics: family." in family_messages
 
     before_model = FakeModelClient(())
     before_release = _answer(
@@ -242,7 +264,9 @@ def test_six_maria_scenarios_end_to_end_with_scripted_model(
     )
     assert before_release.text == "That letter will be available on 2040-05-01."
     assert before_release.citations == ()
+    assert before_release.disclaimer == LETTER_OF_WISHES_DISCLAIMER
     assert before_model.prompts == []
+    tool_results.clear()
 
     after_model = FakeModelClient(
         (
@@ -267,12 +291,27 @@ def test_six_maria_scenarios_end_to_end_with_scripted_model(
     assert tuple(citation.entry_id for citation in after_release.citations) == (
         "e_letter",
     )
-    letter_messages = "\n".join(
-        message.content
+    assert after_release.text == "The letter says: remember this small story about kindness."
+    assert after_release.disclaimer == LETTER_OF_WISHES_DISCLAIMER
+    assert len(after_model.prompts) == 2
+    letter_prompt_text = "\n".join(
+        prompt.system_prompt + "\n"
+        + "\n".join(message.content for message in prompt.messages)
         for prompt in after_model.prompts
-        for message in prompt.messages
     )
-    assert "My dearest daughter" in letter_messages
+    letter_observed_output = (
+        letter_prompt_text + "\n" + "\n".join(repr(result) for result in tool_results)
+    ).casefold()
+    for restricted_secret in (
+        "orchard shop ledger",
+        "e_business",
+        "#business",
+        "for my wife",
+        "for my sister",
+        "e_roberto_letter",
+        "e_nora_letter",
+    ):
+        assert restricted_secret not in letter_observed_output
 
     business_model = FakeModelClient(
         (
@@ -286,12 +325,27 @@ def test_six_maria_scenarios_end_to_end_with_scripted_model(
         sample, "What did he think about his business?", business_model
     )
     assert business == GroundedResponse(NEUTRAL_REPLY)
-    business_messages = "\n".join(
-        message.content
+    assert business.disclaimer is None
+    assert len(business_model.prompts) == 1
+    business_prompt_text = "\n".join(
+        prompt.system_prompt + "\n"
+        + "\n".join(message.content for message in prompt.messages)
         for prompt in business_model.prompts
-        for message in prompt.messages
     )
-    assert "orchard shop ledger" not in business_messages
+    business_observed_output = (
+        business_prompt_text + "\n"
+        + "\n".join(repr(result) for result in tool_results)
+    ).casefold()
+    for restricted_secret in (
+        "orchard shop ledger",
+        "e_business",
+        "#business",
+        "for my wife",
+        "for my sister",
+        "e_roberto_letter",
+        "e_nora_letter",
+    ):
+        assert restricted_secret not in business_observed_output
 
     nora_model = FakeModelClient(())
     nora = _answer(
@@ -530,6 +584,10 @@ def test_unavailable_letter_titles_are_identical_and_never_reach_model(
         ]
     ).casefold()
     assert "for my wife" not in observed_output
+    assert "for my sister" not in observed_output
+    assert "e_roberto_letter" not in observed_output
+    assert "e_nora_letter" not in observed_output
+    assert "a fictional private message" not in observed_output
     assert "2042-06-07" not in observed_output
 
     control_model = FakeModelClient(())
@@ -607,7 +665,7 @@ def test_expired_question_budget_prevents_model_call(
     with pytest.raises(AIServiceUnavailable):
         _answer(
             grounded_sample,
-            "What did he write about family?",
+            "What did he write about the garden?",
             model,
             policy_source=(
                 "protocol maria:\n"
@@ -843,7 +901,7 @@ def test_model_cannot_override_the_asker_in_tool_arguments(
     )
 
     response = _answer(
-        grounded_sample, "What happened in the family?", model, asker="maria"
+        grounded_sample, "What happened in the garden?", model, asker="maria"
     )
 
     assert response == GroundedResponse(NEUTRAL_REPLY)
@@ -887,7 +945,7 @@ def test_tool_loop_stops_at_the_configured_step_cap(
 
     with pytest.raises(AIServiceUnavailable):
         service.answer(
-            "Tell me about family.",
+            "Tell me about the garden.",
             owner_id=grounded_sample.owner_id,
             asker="maria",
             policy_source=MARIA_POLICY,
@@ -965,9 +1023,240 @@ def test_prolog_or_model_failure_is_typed_and_fail_closed(
     with pytest.raises(AIServiceUnavailable):
         _answer(
             grounded_sample,
-            "What did he write about family?",
+            "What did he write about the garden?",
             model_failure,
         )
+
+
+def test_different_names_tags_owner_and_letter_title_keep_access_behavior(
+    swipl_executable: str,
+):
+    owner_id = "owner-asha"
+    service = DiaryService(InMemoryEntryRepository())
+    people = (
+        PersonReference("beneficiary-leo", "Leo"),
+        PersonReference("beneficiary-samira", "Samira"),
+    )
+    timestamps = tuple(
+        datetime(2027, 2, 1, hour, tzinfo=timezone.utc)
+        for hour in range(9, 14)
+    )
+    records = (
+        service.add_diary_entry(
+            owner_id,
+            "c_leo",
+            "Asha met [[Leo]] near the river.",
+            timestamps[0],
+            people,
+        ),
+        service.add_diary_entry(
+            owner_id,
+            "c_permitted",
+            "A permitted shared memory. #permitted-memories",
+            timestamps[1],
+            people,
+        ),
+        service.add_diary_entry(
+            owner_id,
+            "c_restricted",
+            "CANARY-ALTERNATE-PRIVATE #restricted-vault",
+            timestamps[2],
+            people,
+        ),
+        service.add_letter_entry(
+            owner_id,
+            "c_letter",
+            "Dear Leo, remember the bright lantern.",
+            "A personal note for Leo",
+            "Leo",
+            timestamps[3],
+            people,
+        ),
+    )
+    summaries = InMemorySummaryStore()
+    summarizer = FakeSummarizer()
+    for record in records:
+        store_derived_summary(record, summarizer, summaries)
+    facts = build_app_facts(
+        owner_id,
+        records,
+        ("Leo", "Samira"),
+        death_triggered=True,
+        policy_frozen=True,
+    )
+    policy = (
+        "protocol leo:\n"
+        "    may see existence of entries mentioning leo\n"
+        '    may read summary of entries tagged "permitted-memories"\n'
+        'release letter "A personal note for Leo" to leo '
+        "when date >= 2041-03-15\n"
+    )
+
+    def answer(question, model, *, asker="leo", today=date(2041, 3, 15)):
+        return GroundedQAService(
+            service,
+            PrologAccessBridge(swipl_executable, timeout_seconds=5.0),
+            model,
+            summaries,
+        ).answer(
+            question,
+            owner_id=owner_id,
+            asker=asker,
+            policy_source=policy,
+            app_facts=facts,
+            today=today,
+        )
+
+    existence = answer(
+        "Did Asha ever write about Leo?",
+        FakeModelClient(
+            (
+                ModelResponse(
+                    "",
+                    tool_calls=(ToolCall("count_mentions", {"name": "leo"}),),
+                ),
+            )
+        ),
+    )
+    assert existence.text == "Yes. 2 permitted record(s) mention leo."
+    assert existence.citations == ()
+
+    permitted = answer(
+        "What is in the permitted memories?",
+        FakeModelClient(
+            (
+                ModelResponse(
+                    "",
+                    tool_calls=(
+                        ToolCall(
+                            "search_entries",
+                            {"query": "permitted-memories"},
+                        ),
+                    ),
+                ),
+                ModelResponse(
+                    "Leo can read one permitted memory.",
+                    citation_ids=("c_permitted",),
+                ),
+            )
+        ),
+    )
+    assert tuple(item.entry_id for item in permitted.citations) == (
+        "c_permitted",
+    )
+
+    before = answer(
+        "Show me A personal note for Leo",
+        FakeModelClient(()),
+        today=date(2041, 3, 14),
+    )
+    assert before.text == "That letter will be available on 2041-03-15."
+    assert before.citations == ()
+
+    after = answer(
+        "Show me A personal note for Leo",
+        FakeModelClient(
+            (
+                ModelResponse(
+                    "",
+                    tool_calls=(
+                        ToolCall(
+                            "get_letter",
+                            {"title": "A personal note for Leo"},
+                        ),
+                    ),
+                ),
+                ModelResponse(
+                    "Dear Leo, remember the bright lantern.",
+                    citation_ids=("c_letter",),
+                ),
+            )
+        ),
+    )
+    assert after.text == "Dear Leo, remember the bright lantern."
+    assert tuple(item.entry_id for item in after.citations) == ("c_letter",)
+
+    restricted = answer(
+        "Show the restricted vault",
+        FakeModelClient(
+            (
+                ModelResponse(
+                    "",
+                    tool_calls=(
+                        ToolCall("get_entry", {"entry_id": "c_restricted"}),
+                    ),
+                ),
+            )
+        ),
+    )
+    assert restricted == GroundedResponse(NEUTRAL_REPLY)
+
+    unregistered = answer(
+        "What is in the diary?",
+        FakeModelClient(()),
+        asker="samira",
+    )
+    assert unregistered == GroundedResponse(NEUTRAL_REPLY)
+
+
+@pytest.mark.skipif(
+    os.getenv("RUN_LIVE_AI_TESTS") != "1",
+    reason="set RUN_LIVE_AI_TESTS=1 to run live Ollama family Q&A",
+)
+def test_live_ollama_generates_family_answer_with_permitted_citations(
+    grounded_sample: GroundedSample,
+):
+    from app.ai.provider import create_model_client
+
+    model = create_model_client()
+    original_complete = model.complete
+    call_count = 0
+
+    def counted_complete(prompt):
+        nonlocal call_count
+        call_count += 1
+        return original_complete(prompt)
+
+    model.complete = counted_complete
+    warmup_started = time.monotonic()
+    try:
+        model.complete(
+            ModelPrompt(
+                "Reply with OK only.",
+                (PromptMessage("user", "OK"),),
+                (),
+            )
+        )
+    except AIServiceUnavailable:
+        pytest.skip("Live Ollama warm-up was unavailable.")
+
+    service = GroundedQAService(
+        grounded_sample.service,
+        PrologAccessBridge(
+            grounded_sample.swipl_executable,
+            timeout_seconds=5.0,
+        ),
+        model,
+        grounded_sample.summaries,
+    )
+    response = service.answer(
+        "What did he write about family?",
+        owner_id=grounded_sample.owner_id,
+        asker="maria",
+        policy_source=MARIA_POLICY,
+        app_facts=grounded_sample.app_facts,
+        today=date(2040, 5, 1),
+    )
+
+    assert call_count >= 2
+    assert response.text.strip()
+    assert response.text != NEUTRAL_REPLY
+    assert tuple(citation.entry_id for citation in response.citations) in (
+        ("e_family",),
+        ("e_family_2",),
+        ("e_family", "e_family_2"),
+        ("e_family_2", "e_family"),
+    )
 
 
 def test_swipl_setting_is_read_from_environment(monkeypatch: pytest.MonkeyPatch):

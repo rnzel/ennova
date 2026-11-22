@@ -95,7 +95,37 @@ def verify_entry(record: StoredEntry) -> bool:
 
 def search_entries(query: str, context: ToolContext) -> tuple[EntryView, ...]:
     """Search only permitted, verified payloads, then score those candidates."""
-    terms = tuple(term for term in query.casefold().split() if term)
+    stopwords = {
+        "a",
+        "about",
+        "did",
+        "do",
+        "does",
+        "he",
+        "her",
+        "his",
+        "i",
+        "in",
+        "is",
+        "it",
+        "me",
+        "my",
+        "of",
+        "she",
+        "tell",
+        "the",
+        "to",
+        "what",
+        "with",
+        "write",
+        "wrote",
+    }
+    terms = tuple(
+        term.strip(".,!?;:\"'")
+        for term in query.casefold().split()
+        if term.strip(".,!?;:\"'").casefold() not in stopwords
+        and term.strip(".,!?;:\"'")
+    )
     if not terms:
         return ()
 
