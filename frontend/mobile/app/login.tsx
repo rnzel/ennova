@@ -13,10 +13,40 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { ActionButton } from '@/components/ActionButton'
 import { colors, spacing } from '@/constants/theme'
+import { useAuth } from '@/context/AuthProvider'
+import { ApiError } from '@/services/api'
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [mode, setMode] = useState<'login' | 'register' | 'beneficiary'>('login')
+  const [invitationCode, setInvitationCode] = useState('')
+  const [error, setError] = useState('')
+  const { login, registerOwner, registerBeneficiary, isLoading } = useAuth()
+
+  const submit = async () => {
+    setError('')
+    if (!username.trim() || !password || (mode === 'beneficiary' && !invitationCode.trim())) {
+      setError('Enter a username and password.')
+      return
+    }
+    try {
+      if (mode === 'register') {
+        await registerOwner(username.trim(), password)
+      } else if (mode === 'beneficiary') {
+        await registerBeneficiary(invitationCode.trim(), username.trim(), password)
+      } else {
+        await login(username.trim(), password)
+      }
+      router.replace('/(tabs)')
+    } catch (caught) {
+      setError(
+        caught instanceof ApiError
+          ? caught.message
+          : 'The request could not be completed.',
+      )
+    }
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -28,24 +58,51 @@ export default function LoginScreen() {
           <View style={styles.formPanel}>
             <Text style={styles.formEyebrow}>OWNER WORKSPACE</Text>
             <Text style={styles.formTitle}>Welcome to ENNOVA</Text>
-            <Text style={styles.formDescription}>Continue to the owner workspace preview.</Text>
+            <Text style={styles.formDescription}>
+              {mode === 'register'
+                ? 'Create an owner account on the configured backend.'
+                : mode === 'beneficiary'
+                  ? 'Register with a single-use beneficiary invitation.'
+                  : 'Sign in to the owner workspace.'}
+            </Text>
             <View style={styles.notice}>
               <Text style={styles.noticeText}>
-                Prototype only. Sign-in is simulated; do not enter a real password or personal information.
+                Session-only preview: credentials are sent only to the configured backend.
+                JWT storage is temporary and resets when the app restarts.
               </Text>
             </View>
 
-            <Text style={styles.label}>Email address</Text>
+            {error ? (
+              <View style={styles.errorNotice} accessibilityRole="alert">
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
+            {mode === 'beneficiary' ? (
+              <>
+                <Text style={styles.label}>Invitation code</Text>
+                <TextInput
+                  accessibilityLabel="Invitation code"
+                  autoCapitalize="characters"
+                  onChangeText={setInvitationCode}
+                  placeholder="Enter invitation code"
+                  placeholderTextColor={colors.muted}
+                  style={styles.input}
+                  value={invitationCode}
+                />
+              </>
+            ) : null}
+
+            <Text style={styles.label}>Username</Text>
             <TextInput
-              accessibilityLabel="Email address"
+              accessibilityLabel="Username"
               autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              onChangeText={setEmail}
-              placeholder="you@example.test"
-              placeholderTextColor="#91A1A7"
+              autoComplete="username"
+              onChangeText={setUsername}
+              placeholder="Enter your username"
+              placeholderTextColor={colors.muted}
               style={styles.input}
-              value={email}
+              value={username}
             />
             <Text style={styles.label}>Password</Text>
             <TextInput
@@ -53,24 +110,69 @@ export default function LoginScreen() {
               autoComplete="current-password"
               onChangeText={setPassword}
               placeholder="Enter a sample password"
-              placeholderTextColor="#91A1A7"
+              placeholderTextColor={colors.muted}
               secureTextEntry
               style={styles.input}
               value={password}
             />
             <ActionButton
-              label="Continue to preview"
-              onPress={() => router.replace('/(tabs)')}
+              disabled={isLoading}
+              label={
+                isLoading
+                  ? 'Please wait…'
+                  : mode === 'register'
+                    ? 'Create owner account'
+                      : mode === 'beneficiary'
+                        ? 'Register beneficiary'
+                        : 'Sign in'
+              }
+              onPress={submit}
               style={styles.action}
             />
             <View style={styles.divider} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isLoading }}
+              disabled={isLoading}
+              onPress={() => {
+                setMode((current) => (current === 'login' ? 'register' : 'login'))
+                setError('')
+              }}
+              style={styles.secondaryButton}
+            >
+              <Text style={styles.secondaryText}>
+                {mode === 'login'
+                  ? 'Create a new owner account'
+                  : 'I already have an account'}
+              </Text>
+              <Text style={styles.secondaryArrow}>↗</Text>
+            </Pressable>
+            <View style={styles.divider} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isLoading }}
+              disabled={isLoading}
+              onPress={() => {
+                setMode((current) => (current === 'beneficiary' ? 'login' : 'beneficiary'))
+                setError('')
+              }}
+              style={styles.secondaryButton}
+            >
+              <Text style={styles.secondaryText}>
+                {mode === 'beneficiary'
+                  ? 'Continue as owner'
+                  : 'Register with an invitation code'}
+              </Text>
+              <Text style={styles.secondaryArrow}>↗</Text>
+            </Pressable>
+            <View style={styles.divider} />
             <Link href="/beneficiary" asChild>
-              <Pressable style={styles.secondaryButton}>
+              <Pressable accessibilityRole="link" style={styles.secondaryButton}>
                 <Text style={styles.secondaryText}>Open beneficiary preview</Text>
                 <Text style={styles.secondaryArrow}>↗</Text>
               </Pressable>
             </Link>
-            <Text style={styles.footnote}>No data is sent to a server. Preview changes are temporary.</Text>
+            <Text style={styles.footnote}>API access is not persistent. Tokens reset on restart.</Text>
             <Link href="/" asChild>
               <Pressable style={styles.backLink}>
                 <Text style={styles.backText}>Back to intro</Text>
@@ -132,6 +234,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
   },
+  errorNotice: {
+    marginBottom: 16,
+    padding: 11,
+    borderWidth: 1,
+    borderColor: '#E6B7B7',
+    borderRadius: 10,
+    backgroundColor: '#FFF5F5',
+  },
+  errorText: {
+    color: '#8A3434',
+    fontSize: 12,
+    lineHeight: 17,
+  },
   label: {
     marginBottom: 6,
     color: colors.ink,
@@ -177,12 +292,12 @@ const styles = StyleSheet.create({
   },
   footnote: {
     marginTop: 13,
-    color: '#91A1A7',
+    color: colors.muted,
     fontSize: 10,
     textAlign: 'center',
   },
   backLink: {
-    minHeight: 40,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing.sm,

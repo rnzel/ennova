@@ -24,7 +24,10 @@ export default function MoreScreen() {
       <View style={styles.list}>
         {destinations.map((destination) => (
           <Link href={destination.href} asChild key={destination.title}>
-            <Pressable style={({ pressed }) => [styles.destination, pressed && styles.pressed]}>
+            <Pressable
+              accessibilityRole="link"
+              style={({ pressed }) => [styles.destination, pressed && styles.pressed]}
+            >
               <View style={styles.marker}><Text style={styles.markerText}>{destination.marker}</Text></View>
               <View style={styles.copy}>
                 <Text style={styles.title}>{destination.title}</Text>
@@ -36,7 +39,7 @@ export default function MoreScreen() {
         ))}
       </View>
       <PreviewNotice>
-        This native Expo app is a frontend skeleton. Sign-in, storage, policy evaluation, and AI are not connected.
+        This app uses mock data outside the connected API surfaces. Sign-in, entries, and policy submission are API-backed.
       </PreviewNotice>
     </AppScreen>
   )

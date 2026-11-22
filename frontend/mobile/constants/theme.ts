@@ -1,6 +1,6 @@
 export const colors = {
   navy: '#073A5C',
-  teal: '#00A9A6',
+  teal: '#007A78',
   cyan: '#C6F4EF',
   canvas: '#F0F7F8',
   surface: '#FFFFFF',

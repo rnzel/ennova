@@ -5,10 +5,60 @@ import { PageTitle } from '@/components/PageTitle'
 import { Panel } from '@/components/Panel'
 import { PreviewNotice } from '@/components/PreviewNotice'
 import { colors, spacing } from '@/constants/theme'
+import { useAuth } from '@/context/AuthProvider'
+import { apiRequest, ApiError, type AskResponse } from '@/services/api'
 
 export default function AssistantScreen() {
+  const { accessToken, clearRejectedSession } = useAuth()
   const [question, setQuestion] = useState('')
-  const [submitted, setSubmitted] = useState(false)
+  const [answer, setAnswer] = useState('')
+  const [citations, setCitations] = useState<AskResponse['citations']>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [lastQuestion, setLastQuestion] = useState('')
+
+  const ask = async (retryQuestion?: string) => {
+    const submittedQuestion = (retryQuestion ?? question).trim()
+    if (!submittedQuestion) return
+    setError('')
+    setAnswer('')
+    setCitations([])
+    setLastQuestion(submittedQuestion)
+
+    if (!accessToken) {
+      setError('Sign in first so ENNOVA can authorize your question.')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const response = await apiRequest<AskResponse>('/ask', {
+        method: 'POST',
+        token: accessToken,
+        body: { question: submittedQuestion },
+        timeoutMs: 45_000,
+      })
+      setAnswer(response.answer)
+      setCitations(
+        Array.isArray(response.citations)
+          ? response.citations.filter(
+              (citation) =>
+                typeof citation.entry_id === 'string' &&
+                typeof citation.date === 'string',
+            )
+          : [],
+      )
+    } catch (caught) {
+      clearRejectedSession(caught)
+      setError(
+        caught instanceof ApiError
+          ? caught.message
+          : 'The answer could not be completed. Please try again.',
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <AppScreen>
@@ -18,7 +68,7 @@ export default function AssistantScreen() {
         description="A future ENNOVA assistant will answer from material you are authorized to access."
       />
       <PreviewNotice>
-        This prototype does not search entries or call an AI model.
+        Answers are searched and authorized by the backend. Only authorized answers and verified citations are shown.
       </PreviewNotice>
       <Panel>
         <View style={styles.orb}><Text style={styles.orbText}>E</Text></View>
@@ -31,7 +81,9 @@ export default function AssistantScreen() {
           multiline
           onChangeText={(text) => {
             setQuestion(text)
-            setSubmitted(false)
+            setAnswer('')
+            setCitations([])
+            setError('')
           }}
           placeholder="What would you like to ask?"
           style={styles.input}
@@ -40,21 +92,44 @@ export default function AssistantScreen() {
         />
         <Pressable
           accessibilityRole="button"
-          accessibilityState={{ disabled: !question.trim() }}
-          disabled={!question.trim()}
-          onPress={() => setSubmitted(true)}
-          style={[styles.button, !question.trim() && styles.disabled]}
+          accessibilityLabel={isLoading ? 'Checking permissions' : 'Ask ENNOVA'}
+          accessibilityState={{ disabled: !question.trim() || isLoading }}
+          disabled={!question.trim() || isLoading}
+          onPress={() => void ask()}
+          style={[styles.button, (!question.trim() || isLoading) && styles.disabled]}
         >
-          <Text style={styles.buttonText}>Preview question  →</Text>
+          <Text style={styles.buttonText}>{isLoading ? 'Checking permissions…' : 'Ask ENNOVA  →'}</Text>
         </Pressable>
-        {submitted && (
+        {answer ? (
           <View style={styles.response}>
-            <Text style={styles.responseTitle}>Preview only</Text>
-            <Text style={styles.responseText}>
-              Your question was not sent or searched. Connect an authorized backend before enabling answers.
-            </Text>
+            <Text style={styles.responseTitle}>Answer</Text>
+            <Text style={styles.responseText}>{answer}</Text>
+            {citations.length > 0 ? (
+              <View style={styles.citations}>
+                <Text style={styles.citationsTitle}>Verified citations</Text>
+                {citations.map((citation) => (
+                  <Text key={`${citation.entry_id}-${citation.date}`} style={styles.citation}>
+                    {citation.entry_id} · {citation.date}
+                  </Text>
+                ))}
+              </View>
+            ) : null}
           </View>
-        )}
+        ) : null}
+        {error ? (
+          <View style={styles.errorNotice} accessibilityRole="alert">
+            <Text style={styles.errorText}>{error}</Text>
+            {lastQuestion ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void ask(lastQuestion)}
+                style={styles.retryButton}
+              >
+                <Text style={styles.retryText}>Retry</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
       </Panel>
       <View style={styles.steps}>
         <Text style={styles.stepsTitle}>Privacy by design</Text>
@@ -103,7 +178,8 @@ const styles = StyleSheet.create({
   },
   button: {
     alignItems: 'center',
-    paddingVertical: 13,
+    minHeight: 44,
+    justifyContent: 'center',
     borderRadius: 11,
     backgroundColor: colors.cyan,
   },
@@ -130,6 +206,45 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 11,
     lineHeight: 17,
+  },
+  citations: {
+    gap: 5,
+    marginTop: 5,
+    paddingTop: 9,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  citationsTitle: {
+    color: colors.navy,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  citation: {
+    color: colors.teal,
+    fontSize: 10,
+  },
+  errorNotice: {
+    gap: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E6B7B7',
+    borderRadius: 10,
+    backgroundColor: '#FFF5F5',
+  },
+  errorText: {
+    color: '#8A3434',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  retryButton: {
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  retryText: {
+    color: colors.teal,
+    fontSize: 12,
+    fontWeight: '800',
   },
   steps: {
     gap: 12,

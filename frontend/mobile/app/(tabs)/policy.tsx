@@ -5,16 +5,130 @@ import { PageTitle } from '@/components/PageTitle'
 import { Panel } from '@/components/Panel'
 import { PreviewNotice } from '@/components/PreviewNotice'
 import { useAppData } from '@/context/AppDataProvider'
+import { useAuth } from '@/context/AuthProvider'
 import { colors, spacing } from '@/constants/theme'
+import { apiRequest, ApiError, type PolicyUpdateResponse } from '@/services/api'
+
+type WritingMode = 'verbatim' | 'light_fix' | 'review'
+type SelectorType = 'tagged' | 'mentioning'
+type SeeMode = 'none' | 'allow' | 'deny'
+type ReadMode = 'none' | 'allow_summary' | 'allow_verbatim' | 'deny_summary' | 'deny_verbatim'
+
+const templateSources = {
+  family: `protocol family:
+    may see existence of entries tagged "Family"
+    may read summary of entries tagged "Family"
+default writing mode: light_fix
+`,
+  letter: `release letter "A letter for another day" to amelia when date >= 2040-05-01
+trustee is marcus
+`,
+  custody: `transfer custody to marcus if trustee unavailable for 90 days
+default writing mode: review
+`,
+}
 
 export default function PolicyScreen() {
   const { policy, setPolicy } = useAppData()
+  const { accessToken, clearRejectedSession } = useAuth()
   const [draft, setDraft] = useState(policy)
   const [saved, setSaved] = useState(false)
+  const [frozen, setFrozen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [templateName, setTemplateName] = useState<'family' | 'letter' | 'custody'>('family')
+  const [protocol, setProtocol] = useState('family')
+  const [tag, setTag] = useState('Family')
+  const [person, setPerson] = useState('amelia')
+  const [letterTitle, setLetterTitle] = useState('A letter for another day')
+  const [releaseDate, setReleaseDate] = useState('2040-05-01')
+  const [writingMode, setWritingMode] = useState<WritingMode>('light_fix')
+  const [selectorType, setSelectorType] = useState<SelectorType>('tagged')
+  const [mentionedName, setMentionedName] = useState('amelia')
+  const [seeMode, setSeeMode] = useState<SeeMode>('allow')
+  const [readMode, setReadMode] = useState<ReadMode>('allow_summary')
+  const [releaseEnabled, setReleaseEnabled] = useState(true)
+  const [custodyEnabled, setCustodyEnabled] = useState(false)
+  const [custodyPerson, setCustodyPerson] = useState('marcus')
+  const [trusteeEnabled, setTrusteeEnabled] = useState(false)
+  const [trusteePerson, setTrusteePerson] = useState('marcus')
+  const [unavailableDays, setUnavailableDays] = useState('90')
 
-  const saveDraft = () => {
+  const applyTemplate = (name: 'family' | 'letter' | 'custody') => {
+    if (frozen) return
+    setTemplateName(name)
+    setDraft(templateSources[name])
+    setSaved(false)
+    setError('')
+  }
+
+  const generateDraft = () => {
+    if (frozen) return
+    const safeProtocol = protocol.trim().replace(/[^a-z0-9_]/g, '_') || 'family'
+    const safePerson = person.trim().replace(/[^a-z0-9_]/g, '_') || 'amelia'
+    const safeMention = mentionedName.trim().replace(/[^a-z0-9_]/g, '_') || 'amelia'
+    const safeCustodyPerson = custodyPerson.trim().replace(/[^a-z0-9_]/g, '_') || 'marcus'
+    const safeTrusteePerson = trusteePerson.trim().replace(/[^a-z0-9_]/g, '_') || 'marcus'
+    const jsonTag = JSON.stringify(tag.trim() || 'Family')
+    const jsonTitle = JSON.stringify(letterTitle.trim() || 'A letter for another day')
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(releaseDate) ? releaseDate : '2040-05-01'
+    const days = /^\d+$/.test(unavailableDays) ? unavailableDays : '90'
+    const selector =
+      selectorType === 'tagged'
+        ? `entries tagged ${jsonTag}`
+        : `entries mentioning ${safeMention}`
+    const lines = [`protocol ${safeProtocol}:`]
+    if (seeMode === 'allow') lines.push(`    may see existence of ${selector}`)
+    if (seeMode === 'deny') lines.push(`    may not see existence of ${selector}`)
+    if (readMode === 'allow_summary') lines.push(`    may read summary of ${selector}`)
+    if (readMode === 'allow_verbatim') lines.push(`    may read verbatim of ${selector}`)
+    if (readMode === 'deny_summary') lines.push(`    may not read summary of ${selector}`)
+    if (readMode === 'deny_verbatim') lines.push(`    may not read verbatim of ${selector}`)
+    if (releaseEnabled) {
+      lines.push(`release letter ${jsonTitle} to ${safePerson} when date >= ${date}`)
+    }
+    if (custodyEnabled) {
+      lines.push(`transfer custody to ${safeCustodyPerson} if trustee unavailable for ${days} days`)
+    }
+    if (trusteeEnabled) lines.push(`trustee is ${safeTrusteePerson}`)
+    lines.push(`default writing mode: ${writingMode}`)
+    const source = `${lines.join('\n')}\n`
+    setDraft(source)
+    setSaved(false)
+    setError('')
+  }
+
+  const saveDraft = async () => {
+    if (frozen) return
+    setError('')
+    setSaved(false)
     setPolicy(draft)
-    setSaved(true)
+
+    if (!accessToken) {
+      setSaved(true)
+      setError('Preview saved locally only. Sign in to send this policy to the backend.')
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      await apiRequest<PolicyUpdateResponse>('/policy', {
+        method: 'PUT',
+        token: accessToken,
+        body: { source: draft },
+      })
+      setSaved(true)
+    } catch (caught) {
+      clearRejectedSession(caught)
+      if (caught instanceof ApiError) {
+        setError(caught.message)
+        if (caught.code === 'policy_frozen') setFrozen(true)
+      } else {
+        setError('The policy could not be saved.')
+      }
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -25,8 +139,255 @@ export default function PolicyScreen() {
         description="Review a sample policy written in ENNOVA's policy language."
       />
       <PreviewNotice>
-        Editing this sample does not validate it or change any actual permissions.
+        Policy text is sent to the backend parser. The frontend does not create Prolog facts.
       </PreviewNotice>
+      {frozen ? (
+        <View style={styles.frozenNotice} accessibilityRole="alert">
+          <Text style={styles.frozenTitle}>This policy is frozen</Text>
+          <Text style={styles.frozenText}>Editing is disabled because the backend has frozen the policy.</Text>
+        </View>
+      ) : null}
+      <Panel>
+        <Text style={styles.sectionLabel}>POLICY BUILDER</Text>
+        <Text style={styles.panelTitle}>Templates</Text>
+        <View style={styles.templateRow}>
+          {(['family', 'letter', 'custody'] as const).map((name) => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: templateName === name }}
+              disabled={frozen}
+              key={name}
+              onPress={() => applyTemplate(name)}
+              style={[styles.template, templateName === name && styles.templateActive]}
+            >
+              <Text style={styles.templateText}>{name}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Text style={styles.fieldLabel}>Protocol name</Text>
+        <TextInput
+          accessibilityLabel="Protocol name"
+          autoCapitalize="none"
+          editable={!frozen}
+          onChangeText={setProtocol}
+          placeholder="family"
+          style={styles.fieldInput}
+          value={protocol}
+        />
+        <Text style={styles.fieldLabel}>Entry tag</Text>
+        <TextInput
+          accessibilityLabel="Entry tag"
+          editable={!frozen}
+          onChangeText={setTag}
+          placeholder="Family"
+          style={styles.fieldInput}
+          value={tag}
+        />
+        <Text style={styles.fieldLabel}>Selector type</Text>
+        <View style={styles.templateRow}>
+          {(['tagged', 'mentioning'] as const).map((selector) => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: selectorType === selector }}
+              disabled={frozen}
+              key={selector}
+              onPress={() => setSelectorType(selector)}
+              style={[styles.template, selectorType === selector && styles.templateActive]}
+            >
+              <Text style={styles.templateText}>{selector}</Text>
+            </Pressable>
+          ))}
+        </View>
+        {selectorType === 'mentioning' ? (
+          <>
+            <Text style={styles.fieldLabel}>Mentioned identifier</Text>
+            <TextInput
+              accessibilityLabel="Mentioned identifier"
+              autoCapitalize="none"
+              editable={!frozen}
+              onChangeText={setMentionedName}
+              placeholder="amelia"
+              style={styles.fieldInput}
+              value={mentionedName}
+            />
+          </>
+        ) : null}
+        <Text style={styles.fieldLabel}>Existence access</Text>
+        <View style={styles.templateRow}>
+          {(['none', 'allow', 'deny'] as const).map((mode) => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: seeMode === mode }}
+              disabled={frozen}
+              key={mode}
+              onPress={() => setSeeMode(mode)}
+              style={[styles.template, seeMode === mode && styles.templateActive]}
+            >
+              <Text style={styles.templateText}>{mode === 'allow' ? 'may see' : mode === 'deny' ? 'may not see' : 'none'}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={styles.fieldLabel}>Read access</Text>
+        <View style={styles.templateRow}>
+          {([
+            ['none', 'none'],
+            ['allow_summary', 'may read summary'],
+            ['allow_verbatim', 'may read verbatim'],
+            ['deny_summary', 'deny summary'],
+            ['deny_verbatim', 'deny verbatim'],
+          ] as const).map(([mode, label]) => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: readMode === mode }}
+              disabled={frozen}
+              key={mode}
+              onPress={() => setReadMode(mode)}
+              style={[styles.template, readMode === mode && styles.templateActive]}
+            >
+              <Text style={styles.templateText}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={styles.fieldLabel}>Release letter</Text>
+        <View style={styles.templateRow}>
+          {([true, false] as const).map((enabled) => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: releaseEnabled === enabled }}
+              disabled={frozen}
+              key={String(enabled)}
+              onPress={() => setReleaseEnabled(enabled)}
+              style={[styles.template, releaseEnabled === enabled && styles.templateActive]}
+            >
+              <Text style={styles.templateText}>{enabled ? 'include' : 'exclude'}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={styles.fieldLabel}>Recipient identifier</Text>
+        <TextInput
+          accessibilityLabel="Recipient identifier"
+          autoCapitalize="none"
+          editable={!frozen}
+          onChangeText={setPerson}
+          placeholder="amelia"
+          style={styles.fieldInput}
+          value={person}
+        />
+        <Text style={styles.fieldLabel}>Letter title</Text>
+        <TextInput
+          accessibilityLabel="Letter title"
+          editable={!frozen}
+          onChangeText={setLetterTitle}
+          style={styles.fieldInput}
+          value={letterTitle}
+        />
+        <Text style={styles.fieldLabel}>Release date</Text>
+        <TextInput
+          accessibilityLabel="Release date"
+          autoCapitalize="none"
+          editable={!frozen}
+          onChangeText={setReleaseDate}
+          placeholder="2040-05-01"
+          style={styles.fieldInput}
+          value={releaseDate}
+        />
+        <Text style={styles.fieldLabel}>Custody transfer</Text>
+        <View style={styles.templateRow}>
+          {([true, false] as const).map((enabled) => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: custodyEnabled === enabled }}
+              disabled={frozen}
+              key={String(enabled)}
+              onPress={() => setCustodyEnabled(enabled)}
+              style={[styles.template, custodyEnabled === enabled && styles.templateActive]}
+            >
+              <Text style={styles.templateText}>{enabled ? 'include' : 'exclude'}</Text>
+            </Pressable>
+          ))}
+        </View>
+        {custodyEnabled ? (
+          <>
+            <Text style={styles.fieldLabel}>Custody recipient</Text>
+            <TextInput
+              accessibilityLabel="Custody recipient"
+              autoCapitalize="none"
+              editable={!frozen}
+              onChangeText={setCustodyPerson}
+              placeholder="marcus"
+              style={styles.fieldInput}
+              value={custodyPerson}
+            />
+            <Text style={styles.fieldLabel}>Unavailable days</Text>
+            <TextInput
+              accessibilityLabel="Unavailable days"
+              editable={!frozen}
+              keyboardType="number-pad"
+              onChangeText={setUnavailableDays}
+              placeholder="90"
+              style={styles.fieldInput}
+              value={unavailableDays}
+            />
+          </>
+        ) : null}
+        <Text style={styles.fieldLabel}>Optional trustee</Text>
+        <View style={styles.templateRow}>
+          {([true, false] as const).map((enabled) => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: trusteeEnabled === enabled }}
+              disabled={frozen}
+              key={String(enabled)}
+              onPress={() => setTrusteeEnabled(enabled)}
+              style={[styles.template, trusteeEnabled === enabled && styles.templateActive]}
+            >
+              <Text style={styles.templateText}>{enabled ? 'include' : 'exclude'}</Text>
+            </Pressable>
+          ))}
+        </View>
+        {trusteeEnabled ? (
+          <>
+            <Text style={styles.fieldLabel}>Trustee identifier</Text>
+            <TextInput
+              accessibilityLabel="Trustee identifier"
+              autoCapitalize="none"
+              editable={!frozen}
+              onChangeText={setTrusteePerson}
+              placeholder="marcus"
+              style={styles.fieldInput}
+              value={trusteePerson}
+            />
+          </>
+        ) : null}
+        <Text style={styles.fieldLabel}>Default writing mode</Text>
+        <View style={styles.templateRow}>
+          {(['verbatim', 'light_fix', 'review'] as const).map((mode) => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: writingMode === mode }}
+              disabled={frozen}
+              key={mode}
+              onPress={() => setWritingMode(mode)}
+              style={[styles.template, writingMode === mode && styles.templateActive]}
+            >
+              <Text style={styles.templateText}>{mode}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          disabled={frozen}
+          onPress={generateDraft}
+          style={[styles.generateButton, frozen && styles.disabledButton]}
+        >
+          <Text style={styles.saveText}>Generate policy text</Text>
+        </Pressable>
+        <Text style={styles.previewTitle}>Plain-language preview</Text>
+        <Text style={styles.previewText}>
+          {`Protocol ${protocol || 'family'} uses ${seeMode === 'none' ? 'no existence rule' : seeMode === 'allow' ? 'may see' : 'may not see'} and ${readMode === 'none' ? 'no read rule' : readMode.replace('_', ' ')} for ${selectorType === 'tagged' ? `entries tagged ${tag || 'Family'}` : `entries mentioning ${mentionedName || 'amelia'}`}.\n${releaseEnabled ? `Release ${letterTitle || 'A letter for another day'} to ${person || 'amelia'} on or after ${releaseDate}.` : 'No letter release statement.'}\n${custodyEnabled ? `Transfer custody to ${custodyPerson || 'marcus'} after ${unavailableDays || '90'} unavailable trustee days.` : 'No custody transfer statement.'}\n${trusteeEnabled ? `Trustee: ${trusteePerson || 'marcus'}.` : 'No trustee statement.'}\nThe default writing mode is ${writingMode}.`}
+        </Text>
+      </Panel>
       <Panel>
         <Text style={styles.sectionLabel}>POLICY SOURCE</Text>
         <Text style={styles.panelTitle}>Policy draft</Text>
@@ -37,16 +398,27 @@ export default function PolicyScreen() {
           onChangeText={(text) => {
             setDraft(text)
             setSaved(false)
+            setError('')
           }}
+          editable={!frozen}
           spellCheck={false}
           style={styles.editor}
           textAlignVertical="top"
           value={draft}
         />
-        <Pressable style={styles.saveButton} onPress={saveDraft}>
-          <Text style={styles.saveText}>Save preview draft</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: frozen || isSaving }}
+          disabled={frozen || isSaving}
+          style={[styles.saveButton, (frozen || isSaving) && styles.disabledButton]}
+          onPress={saveDraft}
+        >
+          <Text style={styles.saveText}>{isSaving ? 'Sending…' : 'Send policy to backend'}</Text>
         </Pressable>
-        {saved && <Text style={styles.savedText}>Draft saved in memory for this session only.</Text>}
+        {saved && <Text style={styles.savedText}>Policy submitted successfully.</Text>}
+        {error ? (
+          <Text style={styles.errorText} accessibilityRole="alert">{error}</Text>
+        ) : null}
       </Panel>
       <View style={styles.concepts}>
         <Concept number="01" title="May see" description="Allows someone to know an entry exists." />
@@ -68,6 +440,85 @@ function Concept({ number, title, description }: { number: string; title: string
 }
 
 const styles = StyleSheet.create({
+  frozenNotice: {
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E6B7B7',
+    borderRadius: 11,
+    backgroundColor: '#FFF5F5',
+  },
+  frozenTitle: {
+    color: '#8A3434',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  frozenText: {
+    marginTop: 4,
+    color: '#8A3434',
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  templateRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+  },
+  template: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 11,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 999,
+    backgroundColor: colors.surface,
+  },
+  templateActive: {
+    borderColor: colors.teal,
+    backgroundColor: '#E8F7F6',
+  },
+  templateText: {
+    color: colors.navy,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  fieldLabel: {
+    marginTop: 10,
+    marginBottom: 5,
+    color: colors.ink,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  fieldInput: {
+    minHeight: 44,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    color: colors.ink,
+    backgroundColor: colors.surface,
+    fontSize: 13,
+  },
+  generateButton: {
+    alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 11,
+    backgroundColor: '#D7EFF0',
+  },
+  previewTitle: {
+    marginTop: 12,
+    color: colors.navy,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  previewText: {
+    marginTop: 5,
+    color: colors.muted,
+    fontSize: 11,
+    lineHeight: 17,
+  },
   sectionLabel: {
     color: colors.teal,
     fontSize: 9,
@@ -91,7 +542,8 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     alignItems: 'center',
-    paddingVertical: 13,
+    minHeight: 44,
+    justifyContent: 'center',
     borderRadius: 11,
     backgroundColor: colors.cyan,
   },
@@ -103,6 +555,15 @@ const styles = StyleSheet.create({
   savedText: {
     color: colors.successInk,
     fontSize: 11,
+  },
+  errorText: {
+    marginTop: 8,
+    color: '#8A3434',
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
   concepts: {
     gap: spacing.sm,

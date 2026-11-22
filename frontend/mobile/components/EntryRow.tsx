@@ -10,7 +10,10 @@ export function EntryRow({ entry }: { entry: DiaryEntry }) {
       href={{ pathname: '/entries/[id]', params: { id: entry.id } }}
       asChild
     >
-      <Pressable style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+      <Pressable
+        accessibilityRole="link"
+        style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      >
         <View style={styles.copy}>
           <Text style={styles.title} numberOfLines={1}>{entry.title}</Text>
           <Text style={styles.meta}>{entry.date} · {entry.writingMode}</Text>

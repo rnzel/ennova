@@ -18,11 +18,14 @@ export function ActionButton({
   label,
   variant = 'primary',
   style,
+  disabled,
   ...props
 }: ActionButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       style={({ pressed }) => [
         styles.button,
         variant === 'primary' ? styles.primary : styles.secondary,

@@ -8,10 +8,10 @@ import { useAppData } from '@/context/AppDataProvider'
 import { colors, spacing } from '@/constants/theme'
 import type { EntryVisibility } from '@/types'
 
-const filters: Array<'All' | EntryVisibility> = ['All', 'Private', 'Shared', 'Restricted']
+const filters: ('All' | EntryVisibility)[] = ['All', 'Private', 'Shared', 'Restricted']
 
 export default function JournalScreen() {
-  const { entries } = useAppData()
+  const { entries, refreshEntries, entriesLoading, entriesError } = useAppData()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<(typeof filters)[number]>('All')
   const filtered = useMemo(
@@ -39,7 +39,7 @@ export default function JournalScreen() {
         accessibilityLabel="Search entries"
         onChangeText={setQuery}
         placeholder="Search your journal"
-        placeholderTextColor="#91A1A7"
+        placeholderTextColor={colors.muted}
         style={styles.search}
         value={query}
       />
@@ -56,6 +56,21 @@ export default function JournalScreen() {
           </Pressable>
         ))}
       </View>
+      {entriesLoading ? (
+        <View style={styles.status}><Text style={styles.statusText}>Loading entries…</Text></View>
+      ) : null}
+      {entriesError ? (
+        <View style={styles.status}>
+          <Text style={styles.statusText}>{entriesError}</Text>
+          <Pressable
+            accessibilityRole="button"
+            style={styles.retryButton}
+            onPress={() => void refreshEntries()}
+          >
+            <Text style={styles.retryText}>Retry</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <View style={styles.list}>
         {filtered.map((entry) => <EntryRow entry={entry} key={entry.id} />)}
         {filtered.length === 0 && (
@@ -70,6 +85,31 @@ export default function JournalScreen() {
 }
 
 const styles = StyleSheet.create({
+  status: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 11,
+    backgroundColor: colors.surface,
+  },
+  statusText: {
+    flex: 1,
+    color: colors.muted,
+    fontSize: 12,
+  },
+  retryText: {
+    color: colors.teal,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  retryButton: {
+    minHeight: 44,
+    justifyContent: 'center',
+  },
   newButton: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -98,8 +138,9 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   filter: {
+    minHeight: 44,
     paddingHorizontal: 11,
-    paddingVertical: 8,
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 999,

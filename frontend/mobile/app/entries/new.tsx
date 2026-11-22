@@ -5,30 +5,85 @@ import { AppScreen } from '@/components/AppScreen'
 import { PageTitle } from '@/components/PageTitle'
 import { PreviewNotice } from '@/components/PreviewNotice'
 import { useAppData } from '@/context/AppDataProvider'
+import { useAuth } from '@/context/AuthProvider'
 import { colors, spacing } from '@/constants/theme'
+import { apiRequest, ApiError, type ApiEntry } from '@/services/api'
 import type { EntryVisibility, WritingMode } from '@/types'
 
 const visibilities: EntryVisibility[] = ['Private', 'Shared', 'Restricted']
 const writingModes: WritingMode[] = ['Verbatim', 'Light fix', 'Review']
 
 export default function NewEntryScreen() {
-  const { addEntry } = useAppData()
+  const { addEntry, refreshEntries } = useAppData()
+  const { accessToken, clearRejectedSession } = useAuth()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [visibility, setVisibility] = useState<EntryVisibility>('Private')
   const [writingMode, setWritingMode] = useState<WritingMode>('Verbatim')
+  const [entryKind, setEntryKind] = useState<'diary' | 'letter'>('diary')
+  const [recipient, setRecipient] = useState('')
+  const [releaseDate, setReleaseDate] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState('')
 
-  const save = () => {
+  const save = async () => {
     const body = content.trim()
     if (!title.trim() || !body) return
-    addEntry({
-      title: title.trim(),
-      content: body,
-      summary: body.slice(0, 150),
-      visibility,
-      writingMode,
-    })
-    router.replace('/(tabs)/journal')
+    if (entryKind === 'letter' && (!recipient.trim() || !releaseDate.trim())) {
+      setError('Letters require a recipient and release date.')
+      return
+    }
+    setError('')
+    if (!accessToken) {
+      addEntry({
+        title: title.trim(),
+        content: body,
+        summary: body.slice(0, 150),
+        visibility,
+        writingMode,
+      })
+      router.replace('/(tabs)/journal')
+      return
+    }
+
+    const entryId = title
+      .trim()
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[^a-z0-9.-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 64) || `entry-${Date.now()}`
+
+    setIsSaving(true)
+    try {
+      await apiRequest<ApiEntry>('/entries', {
+        method: 'POST',
+        token: accessToken,
+        body: {
+          entry_id: entryId,
+          kind: 'diary',
+          content: body,
+          ...(entryKind === 'letter'
+            ? {
+                kind: 'letter',
+                title: title.trim(),
+                recipient: recipient.trim(),
+              }
+            : {}),
+        },
+      })
+      await refreshEntries()
+      router.replace('/(tabs)/journal')
+    } catch (caught) {
+      clearRejectedSession(caught)
+      setError(
+        caught instanceof ApiError
+          ? caught.message
+          : 'The entry could not be saved.',
+      )
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -42,6 +97,41 @@ export default function NewEntryScreen() {
         <PreviewNotice>
           Use fictional text only. Preview entries are held in memory and disappear when the app restarts.
         </PreviewNotice>
+        <PreviewNotice>
+          A Letter of Wishes is not a legal will and does not transfer property or appoint a legal executor.
+        </PreviewNotice>
+
+        <Text style={styles.label}>Entry kind</Text>
+        <ChoiceRow
+          options={['Diary', 'Letter of Wishes']}
+          selected={entryKind === 'diary' ? 'Diary' : 'Letter of Wishes'}
+          onSelect={(choice) => setEntryKind(choice === 'Diary' ? 'diary' : 'letter')}
+        />
+        {entryKind === 'letter' ? (
+          <>
+            <Text style={styles.label}>Recipient identifier</Text>
+            <TextInput
+              accessibilityLabel="Letter recipient"
+              autoCapitalize="none"
+              onChangeText={setRecipient}
+              placeholder="person_id"
+              style={styles.input}
+              value={recipient}
+            />
+            <Text style={styles.label}>Release date</Text>
+            <TextInput
+              accessibilityLabel="Letter release date"
+              autoCapitalize="none"
+              onChangeText={setReleaseDate}
+              placeholder="2040-05-01"
+              style={styles.input}
+              value={releaseDate}
+            />
+            <Text style={styles.helpText}>
+              The date is part of the wishes draft. The current backend stores the letter and applies release rules only through policy statements.
+            </Text>
+          </>
+        ) : null}
 
         <Text style={styles.label}>Entry title</Text>
         <TextInput
@@ -67,19 +157,35 @@ export default function NewEntryScreen() {
         <Text style={styles.label}>Writing mode</Text>
         <ChoiceRow options={writingModes} selected={writingMode} onSelect={setWritingMode} />
         <Text style={styles.helpText}>Writing mode processing is not connected.</Text>
+        {title || content ? (
+          <Text style={styles.syntaxHint}>
+            Syntax hint: use [[Person Name]] for names and #tag for tags.{' '}
+            {`${title} ${content}`.match(/\[\[[^\]]+\]\]|\#[A-Za-z0-9_-]+/g)?.join('  ') ?? ''}
+          </Text>
+        ) : null}
+        {error ? (
+          <View style={styles.errorNotice} accessibilityRole="alert">
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
 
         <View style={styles.actions}>
-          <Pressable style={styles.cancel} onPress={() => router.back()}>
+          <Pressable
+            accessibilityRole="button"
+            style={styles.cancel}
+            onPress={() => router.back()}
+          >
             <Text style={styles.cancelText}>Cancel</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            accessibilityState={{ disabled: !title.trim() || !content.trim() }}
-            disabled={!title.trim() || !content.trim()}
-            style={[styles.save, (!title.trim() || !content.trim()) && styles.saveDisabled]}
+            accessibilityLabel={isSaving ? 'Saving entry' : 'Save entry'}
+            accessibilityState={{ disabled: !title.trim() || !content.trim() || isSaving }}
+            disabled={!title.trim() || !content.trim() || isSaving}
+            style={[styles.save, (!title.trim() || !content.trim() || isSaving) && styles.saveDisabled]}
             onPress={save}
           >
-            <Text style={styles.saveText}>Save preview entry</Text>
+            <Text style={styles.saveText}>{isSaving ? 'Saving…' : 'Save entry'}</Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -143,6 +249,10 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   choice: {
+    minHeight: 44,
+    minWidth: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 11,
     paddingVertical: 9,
     borderWidth: 1,
@@ -167,6 +277,28 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 10,
     lineHeight: 15,
+  },
+  syntaxHint: {
+    marginTop: spacing.sm,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: '#EEF7F7',
+    color: '#426C74',
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  errorNotice: {
+    marginTop: spacing.sm,
+    padding: 11,
+    borderWidth: 1,
+    borderColor: '#E6B7B7',
+    borderRadius: 10,
+    backgroundColor: '#FFF5F5',
+  },
+  errorText: {
+    color: '#8A3434',
+    fontSize: 12,
+    lineHeight: 17,
   },
   actions: {
     flexDirection: 'row',

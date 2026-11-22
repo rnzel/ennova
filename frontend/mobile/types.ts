@@ -9,6 +9,9 @@ export type DiaryEntry = {
   content: string
   visibility: EntryVisibility
   writingMode: WritingMode
+  source?: 'mock' | 'api'
+  kind?: 'diary' | 'letter'
+  topics?: string[]
 }
 
 export type BeneficiaryStatus = 'Granted' | 'Review' | 'Pending'

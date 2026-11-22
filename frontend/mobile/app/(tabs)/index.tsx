@@ -33,7 +33,7 @@ export default function HomeScreen() {
           Write a memory or review the sharing choices in your sample workspace.
         </Text>
         <Link href="/entries/new" asChild>
-          <Pressable style={styles.heroButton}>
+          <Pressable accessibilityRole="link" style={styles.heroButton}>
             <Text style={styles.heroButtonText}>＋  New diary entry</Text>
           </Pressable>
         </Link>
@@ -51,7 +51,7 @@ export default function HomeScreen() {
             <Text style={styles.sectionEyebrow}>YOUR JOURNAL</Text>
             <Text style={styles.sectionTitle}>Recent entries</Text>
           </View>
-          <Link href="/(tabs)/journal" style={styles.link}>View all</Link>
+          <Link href="/(tabs)/journal" accessibilityRole="link" style={styles.link}>View all</Link>
         </View>
         {entries.slice(0, 3).map((entry) => <EntryRow entry={entry} key={entry.id} />)}
       </Panel>
@@ -62,7 +62,7 @@ export default function HomeScreen() {
             <Text style={styles.sectionEyebrow}>PEOPLE YOU TRUST</Text>
             <Text style={styles.sectionTitle}>Access overview</Text>
           </View>
-          <Link href="/(tabs)/people" style={styles.link}>Manage</Link>
+          <Link href="/(tabs)/people" accessibilityRole="link" style={styles.link}>Manage</Link>
         </View>
         <Text style={styles.panelDescription}>
           {beneficiaries.length} sample beneficiaries across pending, review, and granted states.
@@ -133,9 +133,10 @@ const styles = StyleSheet.create({
   },
   heroButton: {
     alignSelf: 'flex-start',
+    minHeight: 44,
+    justifyContent: 'center',
     marginTop: 4,
     paddingHorizontal: 15,
-    paddingVertical: 11,
     borderRadius: 11,
     backgroundColor: colors.cyan,
   },
@@ -169,7 +170,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   statDetail: {
-    color: '#91A1A7',
+    color: colors.muted,
     fontSize: 9,
   },
   sectionHeading: {

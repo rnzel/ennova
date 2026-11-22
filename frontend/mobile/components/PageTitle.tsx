@@ -11,7 +11,7 @@ export function PageTitle({ eyebrow, title, description }: PageTitleProps) {
   return (
     <View style={styles.container}>
       {eyebrow && <Text style={styles.eyebrow}>{eyebrow.toUpperCase()}</Text>}
-      <Text style={styles.title}>{title}</Text>
+      <Text accessibilityRole="header" style={styles.title}>{title}</Text>
       {description && <Text style={styles.description}>{description}</Text>}
     </View>
   )

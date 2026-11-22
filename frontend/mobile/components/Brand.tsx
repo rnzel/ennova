@@ -9,7 +9,11 @@ type BrandProps = {
 export function Brand({ light = false, compact = false }: BrandProps) {
   return (
     <View style={styles.container}>
-      <Image source={require('../assets/images/ennova-logo.jpg')} style={styles.logo} />
+      <Image
+        accessible={false}
+        source={require('../assets/images/ennova-logo.jpg')}
+        style={styles.logo}
+      />
       {!compact && (
         <Text style={[styles.name, light && styles.nameLight]}>ENNOVA</Text>
       )}

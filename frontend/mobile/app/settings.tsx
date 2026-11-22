@@ -5,8 +5,10 @@ import { AppScreen } from '@/components/AppScreen'
 import { PageTitle } from '@/components/PageTitle'
 import { Panel } from '@/components/Panel'
 import { colors } from '@/constants/theme'
+import { useAuth } from '@/context/AuthProvider'
 
 export default function SettingsScreen() {
+  const { logout } = useAuth()
   const [displayName, setDisplayName] = useState('Diary Owner')
   const [email, setEmail] = useState('owner@example.test')
   const [reminders, setReminders] = useState(false)
@@ -23,10 +25,26 @@ export default function SettingsScreen() {
         <Text style={styles.section}>ACCOUNT</Text>
         <Text style={styles.panelTitle}>Profile</Text>
         <Text style={styles.label}>Display name</Text>
-        <TextInput onChangeText={setDisplayName} style={styles.input} value={displayName} />
+        <TextInput
+          accessibilityLabel="Display name"
+          onChangeText={setDisplayName}
+          style={styles.input}
+          value={displayName}
+        />
         <Text style={styles.label}>Email address</Text>
-        <TextInput autoCapitalize="none" keyboardType="email-address" onChangeText={setEmail} style={styles.input} value={email} />
-        <Pressable style={styles.save} onPress={() => setSaved(true)}>
+        <TextInput
+          accessibilityLabel="Email address"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          onChangeText={setEmail}
+          style={styles.input}
+          value={email}
+        />
+        <Pressable
+          accessibilityRole="button"
+          style={styles.save}
+          onPress={() => setSaved(true)}
+        >
           <Text style={styles.saveText}>Save preview settings</Text>
         </Pressable>
         {saved && <Text style={styles.saved}>Updated in this screen preview only.</Text>}
@@ -56,8 +74,15 @@ export default function SettingsScreen() {
         <Text style={styles.description}>
           Sample entries and changes are stored only in app memory and reset when the app restarts.
         </Text>
-        <Pressable style={styles.signOut} onPress={() => router.replace('/login')}>
-          <Text style={styles.signOutText}>Return to sign in</Text>
+        <Pressable
+          accessibilityRole="button"
+          style={styles.signOut}
+          onPress={() => {
+            logout()
+            router.replace('/login')
+          }}
+        >
+          <Text style={styles.signOutText}>Sign out</Text>
         </Pressable>
       </Panel>
     </AppScreen>
@@ -85,7 +110,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   input: {
-    minHeight: 43,
+    minHeight: 44,
     paddingHorizontal: 11,
     borderWidth: 1,
     borderColor: colors.border,
@@ -95,6 +120,8 @@ const styles = StyleSheet.create({
   },
   save: {
     alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
     marginTop: 7,
     paddingVertical: 12,
     borderRadius: 10,
@@ -135,7 +162,8 @@ const styles = StyleSheet.create({
   },
   signOut: {
     alignItems: 'center',
-    paddingVertical: 12,
+    minHeight: 44,
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 10,

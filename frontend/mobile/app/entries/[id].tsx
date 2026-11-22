@@ -18,7 +18,9 @@ export default function EntryDetailScreen() {
       <AppScreen>
         <PageTitle title="Entry not found" description="It may have been cleared when the app restarted." />
         <Link href="/(tabs)/journal" asChild>
-          <Pressable style={styles.button}><Text style={styles.buttonText}>Back to journal</Text></Pressable>
+          <Pressable accessibilityRole="link" style={styles.button}>
+            <Text style={styles.buttonText}>Back to journal</Text>
+          </Pressable>
         </Link>
       </AppScreen>
     )
@@ -26,17 +28,37 @@ export default function EntryDetailScreen() {
 
   return (
     <AppScreen>
-      <Link href="/(tabs)/journal" style={styles.back}>‹  All entries</Link>
+      <Link href="/(tabs)/journal" style={styles.back} accessibilityRole="link">‹  All entries</Link>
       <PageTitle eyebrow="DIARY ENTRY" title={entry.title} description={`${entry.date} · ${entry.writingMode} mode`} />
       <Panel>
         <View style={styles.meta}>
           <VisibilityBadge visibility={entry.visibility} />
-          <Text style={styles.ownerView}>Owner view · sample</Text>
+          <Text style={styles.ownerView}>
+            {entry.source === 'api' ? 'Owner view · API record' : 'Owner view · sample'}
+          </Text>
         </View>
-        <Text style={styles.content}>{entry.content}</Text>
+        {entry.source === 'api' ? (
+          <View style={styles.apiNotice}>
+            <Text style={styles.apiNoticeTitle}>
+              Entry content is unavailable in this view
+            </Text>
+            <Text style={styles.apiNoticeText}>
+              The backend list response provides metadata only. No entry content was requested or stored by the app.
+            </Text>
+            {entry.topics?.length ? (
+              <Text style={styles.apiNoticeText}>Topics: {entry.topics.join(', ')}</Text>
+            ) : null}
+          </View>
+        ) : (
+          <Text style={styles.content}>{entry.content}</Text>
+        )}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Original text</Text>
-          <Text style={styles.footerText}>Not persisted</Text>
+          <Text style={styles.footerText}>
+            {entry.source === 'api' ? 'Append-only API record' : 'Original text'}
+          </Text>
+          <Text style={styles.footerText}>
+            {entry.source === 'api' ? 'No edit or delete' : 'Not persisted'}
+          </Text>
         </View>
       </Panel>
       <PreviewNotice>
@@ -48,6 +70,8 @@ export default function EntryDetailScreen() {
 
 const styles = StyleSheet.create({
   back: {
+    minHeight: 44,
+    textAlignVertical: 'center',
     color: colors.teal,
     fontSize: 13,
     fontWeight: '700',
@@ -61,6 +85,25 @@ const styles = StyleSheet.create({
   ownerView: {
     color: colors.muted,
     fontSize: 10,
+  },
+  apiNotice: {
+    gap: 7,
+    marginVertical: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#D8EEEC',
+    borderRadius: 11,
+    backgroundColor: '#F0FAF9',
+  },
+  apiNoticeTitle: {
+    color: colors.navy,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  apiNoticeText: {
+    color: '#426C74',
+    fontSize: 12,
+    lineHeight: 18,
   },
   content: {
     marginVertical: 12,
