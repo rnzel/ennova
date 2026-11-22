@@ -18,6 +18,7 @@ import { ApiError } from '@/services/api'
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [mode, setMode] = useState<'login' | 'register' | 'beneficiary'>('login')
   const [invitationCode, setInvitationCode] = useState('')
@@ -26,15 +27,28 @@ export default function LoginScreen() {
 
   const submit = async () => {
     setError('')
+    const trimmedEmail = email.trim()
     if (!username.trim() || !password || (mode === 'beneficiary' && !invitationCode.trim())) {
       setError('Enter a username and password.')
       return
     }
+    if (
+      mode !== 'login' &&
+      (!trimmedEmail || trimmedEmail.split('@').length !== 2 || trimmedEmail.length > 254)
+    ) {
+      setError('Enter an email with exactly one @ and no more than 254 characters.')
+      return
+    }
     try {
       if (mode === 'register') {
-        await registerOwner(username.trim(), password)
+        await registerOwner(username.trim(), trimmedEmail, password)
       } else if (mode === 'beneficiary') {
-        await registerBeneficiary(invitationCode.trim(), username.trim(), password)
+        await registerBeneficiary(
+          invitationCode.trim(),
+          username.trim(),
+          trimmedEmail,
+          password,
+        )
       } else {
         await login(username.trim(), password)
       }
@@ -93,6 +107,25 @@ export default function LoginScreen() {
               </>
             ) : null}
 
+            {mode !== 'login' ? (
+              <>
+                <Text style={styles.label}>Email address</Text>
+                <TextInput
+                  accessibilityLabel="Email address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                  onChangeText={setEmail}
+                  placeholder="Enter your email address"
+                  placeholderTextColor={colors.muted}
+                  style={styles.input}
+                  textContentType="emailAddress"
+                  value={email}
+                />
+              </>
+            ) : null}
+
             <Text style={styles.label}>Username</Text>
             <TextInput
               accessibilityLabel="Username"
@@ -115,6 +148,13 @@ export default function LoginScreen() {
               style={styles.input}
               value={password}
             />
+            {mode !== 'login' ? (
+              <Text style={styles.registrationHelp}>
+                Username: 3-64 characters; lowercase letters, numbers, _, . or -. Password:
+                10-128 characters and not the same as the username. Email: valid address up
+                to 254 characters.
+              </Text>
+            ) : null}
             <ActionButton
               disabled={isLoading}
               label={
@@ -262,6 +302,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     color: colors.ink,
     fontSize: 14,
+  },
+  registrationHelp: {
+    marginBottom: spacing.md,
+    color: colors.muted,
+    fontSize: 11,
+    lineHeight: 16,
   },
   action: {
     marginTop: 4,

@@ -4,15 +4,27 @@ import {
   useState,
   type PropsWithChildren,
 } from 'react'
-import { ApiError, apiRequest, type ApiAccount, type LoginResponse } from '@/services/api'
+import {
+  ApiError,
+  apiRequest,
+  type ApiAccount,
+  type BeneficiaryRegistrationRequest,
+  type LoginResponse,
+  type OwnerRegistrationRequest,
+} from '@/services/api'
 
 type AuthContextValue = {
   account: ApiAccount | null
   accessToken: string | null
   isLoading: boolean
   login: (username: string, password: string) => Promise<void>
-  registerOwner: (username: string, password: string) => Promise<void>
-  registerBeneficiary: (invitationCode: string, username: string, password: string) => Promise<void>
+  registerOwner: (username: string, email: string, password: string) => Promise<void>
+  registerBeneficiary: (
+    invitationCode: string,
+    username: string,
+    email: string,
+    password: string,
+  ) => Promise<void>
   logout: () => void
   clearRejectedSession: (error: unknown) => boolean
 }
@@ -38,12 +50,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   }
 
-  const registerOwner = async (username: string, password: string) => {
+  const registerOwner = async (username: string, email: string, password: string) => {
     setIsLoading(true)
     try {
+      const requestBody: OwnerRegistrationRequest = {
+        username,
+        email: email.trim(),
+        password,
+      }
       const registered = await apiRequest<ApiAccount>('/auth/register-owner', {
         method: 'POST',
-        body: { username, password },
+        body: requestBody,
       })
       const response = await apiRequest<LoginResponse>('/auth/login', {
         method: 'POST',
@@ -59,17 +76,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const registerBeneficiary = async (
     invitationCode: string,
     username: string,
+    email: string,
     password: string,
   ) => {
     setIsLoading(true)
     try {
+      const requestBody: BeneficiaryRegistrationRequest = {
+        invitation_code: invitationCode,
+        username,
+        email: email.trim(),
+        password,
+      }
       const registered = await apiRequest<ApiAccount>('/auth/register-beneficiary', {
         method: 'POST',
-        body: {
-          invitation_code: invitationCode,
-          username,
-          password,
-        },
+        body: requestBody,
       })
       const response = await apiRequest<LoginResponse>('/auth/login', {
         method: 'POST',

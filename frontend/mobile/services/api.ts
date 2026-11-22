@@ -6,6 +6,16 @@ export type ApiAccount = {
   role: 'owner' | 'beneficiary'
 }
 
+export type OwnerRegistrationRequest = {
+  username: string
+  email: string
+  password: string
+}
+
+export type BeneficiaryRegistrationRequest = OwnerRegistrationRequest & {
+  invitation_code: string
+}
+
 export type LoginResponse = {
   access_token: string
   token_type: 'Bearer'
@@ -84,20 +94,23 @@ function safeError(status: number, code: string): ApiError {
   if (code === 'ai_service_unavailable') {
     return new ApiError(status, code, 'AI is temporarily unavailable. Please try again.')
   }
+  if (code === 'invalid_request') {
+    return new ApiError(status, code, 'Please review the information and try again.')
+  }
   if (code === 'invalid_beneficiary') {
-    return new ApiError(status, code, 'Beneficiary registration failed.')
+    return new ApiError(status, code, 'That invitation is invalid or has expired.')
+  }
+  if (code === 'rate_limited' || status === 429) {
+    return new ApiError(status, code, 'Too many attempts. Please try again later.')
+  }
+  if (code === 'conflict' || status === 409) {
+    return new ApiError(status, code, 'The requested resource already exists.')
   }
   if (status === 401) {
     return new ApiError(status, code, 'The username or password is incorrect.')
   }
   if (status === 403) {
     return new ApiError(status, code, 'You are not allowed to perform this action.')
-  }
-  if (status === 429) {
-    return new ApiError(status, code, 'Too many attempts. Please wait and try again.')
-  }
-  if (status === 409) {
-    return new ApiError(status, code, 'The requested resource already exists.')
   }
   if (status >= 500) {
     return new ApiError(status, code, 'The server is temporarily unavailable.')

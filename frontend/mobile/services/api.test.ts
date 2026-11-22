@@ -55,6 +55,78 @@ describe('apiRequest', () => {
       })
   })
 
+  it('maps invalid registration requests without exposing backend details', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: async () => JSON.stringify({
+        code: 'invalid_request',
+        message: 'Rejected person@example.com with password secret-value',
+      }),
+    })
+
+    await expect(apiRequest('/auth/register-owner', { method: 'POST', body: {} }))
+      .rejects.toMatchObject({
+        status: 400,
+        code: 'invalid_request',
+        message: 'Please review the information and try again.',
+      })
+  })
+
+  it('maps conflicts to a generic safe message', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 409,
+      text: async () => JSON.stringify({
+        code: 'conflict',
+        message: 'That email person@example.com is already registered.',
+      }),
+    })
+
+    await expect(apiRequest('/auth/register-owner', { method: 'POST', body: {} }))
+      .rejects.toMatchObject({
+        status: 409,
+        code: 'conflict',
+        message: 'The requested resource already exists.',
+      })
+  })
+
+  it('maps rate limits to a safe retry message', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 429,
+      text: async () => JSON.stringify({
+        code: 'rate_limited',
+        message: 'Private backend rate-limit detail',
+      }),
+    })
+
+    await expect(apiRequest('/auth/register-owner', { method: 'POST', body: {} }))
+      .rejects.toMatchObject({
+        status: 429,
+        code: 'rate_limited',
+        message: 'Too many attempts. Please try again later.',
+      })
+  })
+
+  it('uses one generic message for rejected beneficiary invitations', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: async () => JSON.stringify({
+        code: 'invalid_beneficiary',
+        message: 'Private invitation rejection reason',
+      }),
+    })
+
+    await expect(apiRequest('/auth/register-beneficiary', { method: 'POST', body: {} }))
+      .rejects.toMatchObject({
+        status: 400,
+        code: 'invalid_beneficiary',
+        message: 'That invitation is invalid or has expired.',
+      })
+  })
+
   it('preserves syntax coordinates without exposing backend error text', async () => {
     fetchMock.mockResolvedValue({
       ok: false,
