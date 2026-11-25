@@ -119,25 +119,25 @@ class LetterEntry(Entry):
 class Vault:
     """Append-only in-memory container for diary entries."""
 
-    __slots__ = ("_entries", "_entry_ids")
+    __slots__ = ("__entries", "__entry_ids")
 
     def __init__(self) -> None:
         """Create an empty vault."""
-        self._entries: list[Entry] = []
-        self._entry_ids: set[str] = set()
+        self.__entries: list[Entry] = []
+        self.__entry_ids: set[str] = set()
 
     def append(self, entry: Entry) -> None:
         """Append an entry once, rejecting duplicate identifiers."""
         if not isinstance(entry, Entry):
             raise TypeError("entry must be an Entry.")
-        if entry.entry_id in self._entry_ids:
+        if entry.entry_id in self.__entry_ids:
             raise ValueError(f"Entry ID already exists: {entry.entry_id}")
-        self._entries.append(entry)
-        self._entry_ids.add(entry.entry_id)
+        self.__entries.append(entry)
+        self.__entry_ids.add(entry.entry_id)
 
     def get(self, entry_id: str) -> Entry | None:
         """Return the entry with this identifier, or None if absent."""
-        for entry in self._entries:
+        for entry in self.__entries:
             if entry.entry_id == entry_id:
                 return entry
         return None
@@ -145,18 +145,23 @@ class Vault:
     @property
     def entries(self) -> tuple[Entry, ...]:
         """Return an immutable snapshot in append order."""
-        return tuple(self._entries)
+        return tuple(self.__entries)
 
 
 class Beneficiary:
-    """A person recorded as a beneficiary, without implicit access rights."""
+    """A beneficiary identity optionally associated with a policy protocol."""
 
-    __slots__ = ("_beneficiary_id", "_name")
+    __slots__ = ("_beneficiary_id", "_name", "__protocol")
 
-    def __init__(self, beneficiary_id: str, name: str) -> None:
-        """Create a beneficiary identity."""
+    def __init__(
+        self, beneficiary_id: str, name: str, protocol: Protocol | None = None
+    ) -> None:
+        """Create a beneficiary identity with an optional associated protocol."""
         self._beneficiary_id = _require_nonempty(beneficiary_id, "beneficiary_id")
         self._name = _require_nonempty(name, "name")
+        if protocol is not None and not isinstance(protocol, Protocol):
+            raise TypeError("protocol must be a Protocol or None.")
+        self.__protocol = protocol
 
     @property
     def beneficiary_id(self) -> str:
@@ -167,6 +172,11 @@ class Beneficiary:
     def name(self) -> str:
         """Return the beneficiary name."""
         return self._name
+
+    @property
+    def protocol(self) -> Protocol | None:
+        """Return the associated protocol, if one has been assigned."""
+        return self.__protocol
 
 
 class Grant:

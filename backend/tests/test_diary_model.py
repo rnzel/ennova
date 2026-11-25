@@ -68,6 +68,12 @@ def test_vault_appends_retrieves_and_returns_immutable_snapshots():
     assert initial_snapshot == (first,)
     with pytest.raises(AttributeError):
         vault.entries.append(first)
+    with pytest.raises(AttributeError):
+        vault._entries
+
+    # A caller cannot mutate the vault by retaining or changing an exposed snapshot.
+    assert isinstance(vault.entries, tuple)
+    assert vault.entries == (first, second)
 
 
 def test_vault_rejects_duplicate_ids_and_has_no_edit_or_delete_methods():
@@ -83,7 +89,8 @@ def test_vault_rejects_duplicate_ids_and_has_no_edit_or_delete_methods():
 
 def test_owner_beneficiary_and_protocol_keep_encapsulated_identity_and_grants():
     owner = Owner("owner-1", "Lola Reyes")
-    beneficiary = Beneficiary("beneficiary-1", "Maria")
+    beneficiary_protocol = Protocol()
+    beneficiary = Beneficiary("beneficiary-1", "Maria", beneficiary_protocol)
     grant = Grant(
         beneficiary.beneficiary_id,
         'entries tagged "family"',
@@ -95,11 +102,22 @@ def test_owner_beneficiary_and_protocol_keep_encapsulated_identity_and_grants():
     assert isinstance(owner.vault, Vault)
     assert isinstance(owner.protocol, Protocol)
     assert beneficiary.name == "Maria"
+    assert beneficiary.protocol is beneficiary_protocol
     assert owner.protocol.grants == (grant,)
     with pytest.raises(AttributeError):
         owner.name = "Changed"
     with pytest.raises(AttributeError):
         owner.protocol.grants.append(grant)
+    with pytest.raises(AttributeError):
+        beneficiary.protocol = Protocol()
+
+
+def test_beneficiary_protocol_is_optional_and_type_checked():
+    beneficiary = Beneficiary("beneficiary-1", "Maria")
+
+    assert beneficiary.protocol is None
+    with pytest.raises(TypeError, match="Protocol or None"):
+        Beneficiary("beneficiary-2", "Adam", object())
 
 
 def test_diary_domain_modules_do_not_import_flask_or_database_packages():

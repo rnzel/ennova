@@ -17,8 +17,10 @@ classDiagram
     class Beneficiary {
         -str _beneficiary_id
         -str _name
+        -Protocol __protocol
         +beneficiary_id str
         +name str
+        +protocol Optional~Protocol~
     }
     class Protocol {
         -list~Grant~ _grants
@@ -46,8 +48,8 @@ classDiagram
         verbatim
     }
     class Vault {
-        -list~Entry~ _entries
-        -set~str~ _entry_ids
+        -list~Entry~ __entries
+        -set~str~ __entry_ids
         +append(entry) None
         +get(entry_id) Entry
         +entries tuple
@@ -327,6 +329,7 @@ classDiagram
     WritingMode <|-- Review
     Owner "1" *-- "1" Vault : owns
     Owner "1" *-- "1" Protocol : defines
+    Beneficiary "0..*" --> "0..1" Protocol : associated with
     Vault "1" o-- "0..*" Entry : contains
     Protocol "1" *-- "0..*" Grant : holds
     Grant --> Beneficiary : identifies
