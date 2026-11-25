@@ -1,3 +1,6 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: Language design (UI generates policy-language source)
+
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { AppScreen } from '@/components/AppScreen'
@@ -5,9 +8,8 @@ import { PageTitle } from '@/components/PageTitle'
 import { Panel } from '@/components/Panel'
 import { PreviewNotice } from '@/components/PreviewNotice'
 import { useAppData } from '@/context/AppDataProvider'
-import { useAuth } from '@/context/AuthProvider'
 import { colors, spacing } from '@/constants/theme'
-import { apiRequest, ApiError, type PolicyUpdateResponse } from '@/services/api'
+import { toPolicyPersonId } from '@/services/policySource'
 
 type WritingMode = 'verbatim' | 'light_fix' | 'review'
 type SelectorType = 'tagged' | 'mentioning'
@@ -29,13 +31,15 @@ default writing mode: review
 }
 
 export default function PolicyScreen() {
-  const { policy, setPolicy } = useAppData()
-  const { accessToken, clearRejectedSession } = useAuth()
+  const {
+    policy,
+    requestPolicyConfirmation,
+    policyFrozen,
+    isPublishingPolicy,
+    policyPublishOutcome,
+    clearPolicyPublishOutcome,
+  } = useAppData()
   const [draft, setDraft] = useState(policy)
-  const [saved, setSaved] = useState(false)
-  const [frozen, setFrozen] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState('')
   const [templateName, setTemplateName] = useState<'family' | 'letter' | 'custody'>('family')
   const [protocol, setProtocol] = useState('family')
   const [tag, setTag] = useState('Family')
@@ -55,20 +59,19 @@ export default function PolicyScreen() {
   const [unavailableDays, setUnavailableDays] = useState('90')
 
   const applyTemplate = (name: 'family' | 'letter' | 'custody') => {
-    if (frozen) return
+    if (policyFrozen) return
     setTemplateName(name)
     setDraft(templateSources[name])
-    setSaved(false)
-    setError('')
+    clearPolicyPublishOutcome()
   }
 
   const generateDraft = () => {
-    if (frozen) return
-    const safeProtocol = protocol.trim().replace(/[^a-z0-9_]/g, '_') || 'family'
-    const safePerson = person.trim().replace(/[^a-z0-9_]/g, '_') || 'amelia'
-    const safeMention = mentionedName.trim().replace(/[^a-z0-9_]/g, '_') || 'amelia'
-    const safeCustodyPerson = custodyPerson.trim().replace(/[^a-z0-9_]/g, '_') || 'marcus'
-    const safeTrusteePerson = trusteePerson.trim().replace(/[^a-z0-9_]/g, '_') || 'marcus'
+    if (policyFrozen) return
+    const safeProtocol = toPolicyPersonId(protocol, 'family')
+    const safePerson = toPolicyPersonId(person, 'amelia')
+    const safeMention = toPolicyPersonId(mentionedName, 'amelia')
+    const safeCustodyPerson = toPolicyPersonId(custodyPerson, 'marcus')
+    const safeTrusteePerson = toPolicyPersonId(trusteePerson, 'marcus')
     const jsonTag = JSON.stringify(tag.trim() || 'Family')
     const jsonTitle = JSON.stringify(letterTitle.trim() || 'A letter for another day')
     const date = /^\d{4}-\d{2}-\d{2}$/.test(releaseDate) ? releaseDate : '2040-05-01'
@@ -94,42 +97,19 @@ export default function PolicyScreen() {
     lines.push(`default writing mode: ${writingMode}`)
     const source = `${lines.join('\n')}\n`
     setDraft(source)
-    setSaved(false)
-    setError('')
+    clearPolicyPublishOutcome()
   }
 
-  const saveDraft = async () => {
-    if (frozen) return
-    setError('')
-    setSaved(false)
-    setPolicy(draft)
-
-    if (!accessToken) {
-      setSaved(true)
-      setError('Preview saved locally only. Sign in to send this policy to the backend.')
-      return
-    }
-
-    setIsSaving(true)
-    try {
-      await apiRequest<PolicyUpdateResponse>('/policy', {
-        method: 'PUT',
-        token: accessToken,
-        body: { source: draft },
-      })
-      setSaved(true)
-    } catch (caught) {
-      clearRejectedSession(caught)
-      if (caught instanceof ApiError) {
-        setError(caught.message)
-        if (caught.code === 'policy_frozen') setFrozen(true)
-      } else {
-        setError('The policy could not be saved.')
-      }
-    } finally {
-      setIsSaving(false)
-    }
+  const saveDraft = () => {
+    if (policyFrozen || isPublishingPolicy) return
+    requestPolicyConfirmation(draft, 'policy')
   }
+
+  const outcomeMessage = policyPublishOutcome?.source === draft
+    ? policyPublishOutcome.mode === 'preview'
+      ? 'Preview saved locally only. Sign in to send this policy to the backend.'
+      : 'Policy submitted successfully.'
+    : ''
 
   return (
     <AppScreen>
@@ -141,7 +121,7 @@ export default function PolicyScreen() {
       <PreviewNotice>
         Policy text is sent to the backend parser. The frontend does not create Prolog facts.
       </PreviewNotice>
-      {frozen ? (
+      {policyFrozen ? (
         <View style={styles.frozenNotice} accessibilityRole="alert">
           <Text style={styles.frozenTitle}>This policy is frozen</Text>
           <Text style={styles.frozenText}>Editing is disabled because the backend has frozen the policy.</Text>
@@ -155,7 +135,7 @@ export default function PolicyScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ selected: templateName === name }}
-              disabled={frozen}
+              disabled={policyFrozen}
               key={name}
               onPress={() => applyTemplate(name)}
               style={[styles.template, templateName === name && styles.templateActive]}
@@ -169,7 +149,7 @@ export default function PolicyScreen() {
         <TextInput
           accessibilityLabel="Protocol name"
           autoCapitalize="none"
-          editable={!frozen}
+          editable={!policyFrozen}
           onChangeText={setProtocol}
           placeholder="family"
           style={styles.fieldInput}
@@ -178,7 +158,7 @@ export default function PolicyScreen() {
         <Text style={styles.fieldLabel}>Entry tag</Text>
         <TextInput
           accessibilityLabel="Entry tag"
-          editable={!frozen}
+          editable={!policyFrozen}
           onChangeText={setTag}
           placeholder="Family"
           style={styles.fieldInput}
@@ -190,7 +170,7 @@ export default function PolicyScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ selected: selectorType === selector }}
-              disabled={frozen}
+              disabled={policyFrozen}
               key={selector}
               onPress={() => setSelectorType(selector)}
               style={[styles.template, selectorType === selector && styles.templateActive]}
@@ -205,7 +185,7 @@ export default function PolicyScreen() {
             <TextInput
               accessibilityLabel="Mentioned identifier"
               autoCapitalize="none"
-              editable={!frozen}
+              editable={!policyFrozen}
               onChangeText={setMentionedName}
               placeholder="amelia"
               style={styles.fieldInput}
@@ -219,7 +199,7 @@ export default function PolicyScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ selected: seeMode === mode }}
-              disabled={frozen}
+              disabled={policyFrozen}
               key={mode}
               onPress={() => setSeeMode(mode)}
               style={[styles.template, seeMode === mode && styles.templateActive]}
@@ -240,7 +220,7 @@ export default function PolicyScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ selected: readMode === mode }}
-              disabled={frozen}
+              disabled={policyFrozen}
               key={mode}
               onPress={() => setReadMode(mode)}
               style={[styles.template, readMode === mode && styles.templateActive]}
@@ -255,7 +235,7 @@ export default function PolicyScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ selected: releaseEnabled === enabled }}
-              disabled={frozen}
+              disabled={policyFrozen}
               key={String(enabled)}
               onPress={() => setReleaseEnabled(enabled)}
               style={[styles.template, releaseEnabled === enabled && styles.templateActive]}
@@ -268,7 +248,7 @@ export default function PolicyScreen() {
         <TextInput
           accessibilityLabel="Recipient identifier"
           autoCapitalize="none"
-          editable={!frozen}
+          editable={!policyFrozen}
           onChangeText={setPerson}
           placeholder="amelia"
           style={styles.fieldInput}
@@ -277,7 +257,7 @@ export default function PolicyScreen() {
         <Text style={styles.fieldLabel}>Letter title</Text>
         <TextInput
           accessibilityLabel="Letter title"
-          editable={!frozen}
+          editable={!policyFrozen}
           onChangeText={setLetterTitle}
           style={styles.fieldInput}
           value={letterTitle}
@@ -286,7 +266,7 @@ export default function PolicyScreen() {
         <TextInput
           accessibilityLabel="Release date"
           autoCapitalize="none"
-          editable={!frozen}
+          editable={!policyFrozen}
           onChangeText={setReleaseDate}
           placeholder="2040-05-01"
           style={styles.fieldInput}
@@ -298,7 +278,7 @@ export default function PolicyScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ selected: custodyEnabled === enabled }}
-              disabled={frozen}
+              disabled={policyFrozen}
               key={String(enabled)}
               onPress={() => setCustodyEnabled(enabled)}
               style={[styles.template, custodyEnabled === enabled && styles.templateActive]}
@@ -313,7 +293,7 @@ export default function PolicyScreen() {
             <TextInput
               accessibilityLabel="Custody recipient"
               autoCapitalize="none"
-              editable={!frozen}
+              editable={!policyFrozen}
               onChangeText={setCustodyPerson}
               placeholder="marcus"
               style={styles.fieldInput}
@@ -322,7 +302,7 @@ export default function PolicyScreen() {
             <Text style={styles.fieldLabel}>Unavailable days</Text>
             <TextInput
               accessibilityLabel="Unavailable days"
-              editable={!frozen}
+              editable={!policyFrozen}
               keyboardType="number-pad"
               onChangeText={setUnavailableDays}
               placeholder="90"
@@ -337,7 +317,7 @@ export default function PolicyScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ selected: trusteeEnabled === enabled }}
-              disabled={frozen}
+              disabled={policyFrozen}
               key={String(enabled)}
               onPress={() => setTrusteeEnabled(enabled)}
               style={[styles.template, trusteeEnabled === enabled && styles.templateActive]}
@@ -352,7 +332,7 @@ export default function PolicyScreen() {
             <TextInput
               accessibilityLabel="Trustee identifier"
               autoCapitalize="none"
-              editable={!frozen}
+              editable={!policyFrozen}
               onChangeText={setTrusteePerson}
               placeholder="marcus"
               style={styles.fieldInput}
@@ -366,7 +346,7 @@ export default function PolicyScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ selected: writingMode === mode }}
-              disabled={frozen}
+              disabled={policyFrozen}
               key={mode}
               onPress={() => setWritingMode(mode)}
               style={[styles.template, writingMode === mode && styles.templateActive]}
@@ -377,9 +357,9 @@ export default function PolicyScreen() {
         </View>
         <Pressable
           accessibilityRole="button"
-          disabled={frozen}
+          disabled={policyFrozen}
           onPress={generateDraft}
-          style={[styles.generateButton, frozen && styles.disabledButton]}
+          style={[styles.generateButton, policyFrozen && styles.disabledButton]}
         >
           <Text style={styles.saveText}>Generate policy text</Text>
         </Pressable>
@@ -397,10 +377,9 @@ export default function PolicyScreen() {
           multiline
           onChangeText={(text) => {
             setDraft(text)
-            setSaved(false)
-            setError('')
+            clearPolicyPublishOutcome()
           }}
-          editable={!frozen}
+          editable={!policyFrozen}
           spellCheck={false}
           style={styles.editor}
           textAlignVertical="top"
@@ -408,16 +387,15 @@ export default function PolicyScreen() {
         />
         <Pressable
           accessibilityRole="button"
-          accessibilityState={{ disabled: frozen || isSaving }}
-          disabled={frozen || isSaving}
-          style={[styles.saveButton, (frozen || isSaving) && styles.disabledButton]}
+          accessibilityState={{ disabled: policyFrozen || isPublishingPolicy }}
+          disabled={policyFrozen || isPublishingPolicy}
+          style={[styles.saveButton, (policyFrozen || isPublishingPolicy) && styles.disabledButton]}
           onPress={saveDraft}
         >
-          <Text style={styles.saveText}>{isSaving ? 'Sending…' : 'Send policy to backend'}</Text>
+          <Text style={styles.saveText}>Review policy replacement</Text>
         </Pressable>
-        {saved && <Text style={styles.savedText}>Policy submitted successfully.</Text>}
-        {error ? (
-          <Text style={styles.errorText} accessibilityRole="alert">{error}</Text>
+        {outcomeMessage ? (
+          <Text style={styles.savedText} accessibilityRole="status">{outcomeMessage}</Text>
         ) : null}
       </Panel>
       <View style={styles.concepts}>

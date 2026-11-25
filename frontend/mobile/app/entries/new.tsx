@@ -1,4 +1,7 @@
-import { useState } from 'react'
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: n/a (interface)
+
+import { useEffect, useState } from 'react'
 import { router } from 'expo-router'
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { AppScreen } from '@/components/AppScreen'
@@ -8,13 +11,27 @@ import { useAppData } from '@/context/AppDataProvider'
 import { useAuth } from '@/context/AuthProvider'
 import { colors, spacing } from '@/constants/theme'
 import { apiRequest, ApiError, type ApiEntry } from '@/services/api'
+import {
+  buildReleasePolicySource,
+  isPastReleaseDate,
+  isPolicyPersonId,
+  isValidReleaseDate,
+} from '@/services/policySource'
 import type { EntryVisibility, WritingMode } from '@/types'
 
 const visibilities: EntryVisibility[] = ['Private', 'Shared', 'Restricted']
 const writingModes: WritingMode[] = ['Verbatim', 'Light fix', 'Review']
 
 export default function NewEntryScreen() {
-  const { addEntry, refreshEntries } = useAppData()
+  const {
+    addEntry,
+    refreshEntries,
+    policy,
+    requestPolicyConfirmation,
+    policyFrozen,
+    policyPublishOutcome,
+    clearPolicyPublishOutcome,
+  } = useAppData()
   const { accessToken, clearRejectedSession } = useAuth()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
@@ -24,30 +41,56 @@ export default function NewEntryScreen() {
   const [recipient, setRecipient] = useState('')
   const [releaseDate, setReleaseDate] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [letterSaved, setLetterSaved] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (
+      letterSaved &&
+      policyPublishOutcome?.intent === 'letter-release' &&
+      policyPublishOutcome.mode === 'backend'
+    ) {
+      router.replace('/(tabs)/journal')
+    }
+  }, [letterSaved, policyPublishOutcome])
 
   const save = async () => {
     const body = content.trim()
-    if (!title.trim() || !body) return
-    if (entryKind === 'letter' && (!recipient.trim() || !releaseDate.trim())) {
+    const trimmedTitle = title.trim()
+    const trimmedRecipient = recipient.trim()
+    if (!trimmedTitle || !body) return
+    if (entryKind === 'letter' && (!trimmedRecipient || !releaseDate)) {
       setError('Letters require a recipient and release date.')
       return
     }
+    if (entryKind === 'letter' && !isPolicyPersonId(trimmedRecipient)) {
+      setError('Use a valid lowercase person ID from the invitation.')
+      return
+    }
+    if (entryKind === 'letter' && !isValidReleaseDate(releaseDate)) {
+      setError('Enter a real release date in YYYY-MM-DD format.')
+      return
+    }
+    if (entryKind === 'letter' && policyFrozen) {
+      setError('This policy is frozen and can no longer be changed.')
+      return
+    }
     setError('')
+    clearPolicyPublishOutcome()
     if (!accessToken) {
       addEntry({
-        title: title.trim(),
+        title: trimmedTitle,
         content: body,
         summary: body.slice(0, 150),
         visibility,
         writingMode,
+        kind: entryKind,
       })
       router.replace('/(tabs)/journal')
       return
     }
 
-    const entryId = title
-      .trim()
+    const entryId = trimmedTitle
       .toLowerCase()
       .normalize('NFKD')
       .replace(/[^a-z0-9.-]+/g, '-')
@@ -61,25 +104,37 @@ export default function NewEntryScreen() {
         token: accessToken,
         body: {
           entry_id: entryId,
-          kind: 'diary',
+          kind: entryKind,
           content: body,
           ...(entryKind === 'letter'
             ? {
-                kind: 'letter',
-                title: title.trim(),
-                recipient: recipient.trim(),
+                title: trimmedTitle,
+                recipient: trimmedRecipient,
               }
             : {}),
         },
       })
       await refreshEntries()
-      router.replace('/(tabs)/journal')
+      if (entryKind === 'letter') {
+        setLetterSaved(true)
+        const source = buildReleasePolicySource(
+          policy,
+          trimmedTitle,
+          trimmedRecipient,
+          releaseDate,
+        )
+        requestPolicyConfirmation(source, 'letter-release')
+      } else {
+        router.replace('/(tabs)/journal')
+      }
     } catch (caught) {
       clearRejectedSession(caught)
       setError(
-        caught instanceof ApiError
-          ? caught.message
-          : 'The entry could not be saved.',
+        entryKind === 'letter' && caught instanceof ApiError && caught.status === 409
+          ? 'A letter with this title already exists.'
+          : caught instanceof ApiError
+            ? caught.message
+            : 'The entry could not be saved.',
       )
     } finally {
       setIsSaving(false)
@@ -100,6 +155,11 @@ export default function NewEntryScreen() {
         <PreviewNotice>
           A Letter of Wishes is not a legal will and does not transfer property or appoint a legal executor.
         </PreviewNotice>
+        {!accessToken ? (
+          <PreviewNotice>
+            This unauthenticated form is a fictional, in-memory preview only. It will not save a letter or release rule to the backend.
+          </PreviewNotice>
+        ) : null}
 
         <Text style={styles.label}>Entry kind</Text>
         <ChoiceRow
@@ -118,6 +178,9 @@ export default function NewEntryScreen() {
               style={styles.input}
               value={recipient}
             />
+            <Text style={styles.helpText}>
+              Use the person ID from the invitation. Whitespace is trimmed, but case and characters are preserved.
+            </Text>
             <Text style={styles.label}>Release date</Text>
             <TextInput
               accessibilityLabel="Letter release date"
@@ -128,8 +191,13 @@ export default function NewEntryScreen() {
               value={releaseDate}
             />
             <Text style={styles.helpText}>
-              The date is part of the wishes draft. The current backend stores the letter and applies release rules only through policy statements.
+              A release date is stored in the complete policy source, not on the letter entry.
             </Text>
+            {isPastReleaseDate(releaseDate) ? (
+              <Text accessibilityRole="alert" style={styles.warningText}>
+                This release date is in the past.
+              </Text>
+            ) : null}
           </>
         ) : null}
 
@@ -168,6 +236,11 @@ export default function NewEntryScreen() {
             <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
+        {letterSaved ? (
+          <Text style={styles.helpText}>
+            The letter is saved. If the release date is not set, use the app-wide retry notice; retry will not post the letter again.
+          </Text>
+        ) : null}
 
         <View style={styles.actions}>
           <Pressable
@@ -180,9 +253,14 @@ export default function NewEntryScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={isSaving ? 'Saving entry' : 'Save entry'}
-            accessibilityState={{ disabled: !title.trim() || !content.trim() || isSaving }}
-            disabled={!title.trim() || !content.trim() || isSaving}
-            style={[styles.save, (!title.trim() || !content.trim() || isSaving) && styles.saveDisabled]}
+            accessibilityState={{
+              disabled: !title.trim() || !content.trim() || isSaving || letterSaved,
+            }}
+            disabled={!title.trim() || !content.trim() || isSaving || letterSaved}
+            style={[
+              styles.save,
+              (!title.trim() || !content.trim() || isSaving || letterSaved) && styles.saveDisabled,
+            ]}
             onPress={save}
           >
             <Text style={styles.saveText}>{isSaving ? 'Saving…' : 'Save entry'}</Text>
@@ -277,6 +355,12 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 10,
     lineHeight: 15,
+  },
+  warningText: {
+    marginTop: 6,
+    color: colors.warningInk,
+    fontSize: 12,
+    lineHeight: 17,
   },
   syntaxHint: {
     marginTop: spacing.sm,

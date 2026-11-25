@@ -1,3 +1,6 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: n/a (interface)
+
 import { Link, useLocalSearchParams } from 'expo-router'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { AppScreen } from '@/components/AppScreen'
@@ -29,7 +32,11 @@ export default function EntryDetailScreen() {
   return (
     <AppScreen>
       <Link href="/(tabs)/journal" style={styles.back} accessibilityRole="link">‹  All entries</Link>
-      <PageTitle eyebrow="DIARY ENTRY" title={entry.title} description={`${entry.date} · ${entry.writingMode} mode`} />
+      <PageTitle
+        eyebrow={entry.kind === 'letter' ? 'LETTER OF WISHES' : 'DIARY ENTRY'}
+        title={entry.title}
+        description={`${entry.date} · ${entry.writingMode} mode`}
+      />
       <Panel>
         <View style={styles.meta}>
           <VisibilityBadge visibility={entry.visibility} />
@@ -47,6 +54,9 @@ export default function EntryDetailScreen() {
             </Text>
             {entry.topics?.length ? (
               <Text style={styles.apiNoticeText}>Topics: {entry.topics.join(', ')}</Text>
+            ) : null}
+            {entry.disclaimer ? (
+              <Text style={styles.apiNoticeText}>{entry.disclaimer}</Text>
             ) : null}
           </View>
         ) : (

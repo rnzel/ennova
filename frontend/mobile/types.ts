@@ -1,3 +1,6 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: n/a (frontend data types)
+
 export type EntryVisibility = 'Private' | 'Shared' | 'Restricted'
 export type WritingMode = 'Verbatim' | 'Light fix' | 'Review'
 
@@ -12,6 +15,7 @@ export type DiaryEntry = {
   source?: 'mock' | 'api'
   kind?: 'diary' | 'letter'
   topics?: string[]
+  disclaimer?: string
 }
 
 export type BeneficiaryStatus = 'Granted' | 'Review' | 'Pending'

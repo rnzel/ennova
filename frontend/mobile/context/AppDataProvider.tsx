@@ -1,16 +1,45 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: Scripting (API orchestration and in-memory UI state)
+
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react'
 import { initialBeneficiaries, initialEntries, initialPolicy } from '../data/mockData'
 import type { Beneficiary, DiaryEntry, NewBeneficiary, NewEntry } from '../types'
 import { useAuth } from './AuthProvider'
-import { apiRequest, type ApiEntryList } from '@/services/api'
+import { ApiError, apiRequest, type ApiEntryList, type PolicyUpdateResponse } from '@/services/api'
+
+export type PolicyPublishIntent = 'policy' | 'letter-release'
+
+export type PolicyPublishOutcome = {
+  intent: PolicyPublishIntent
+  source: string
+  mode: 'backend' | 'preview'
+}
+
+type PolicyConfirmation = {
+  intent: PolicyPublishIntent
+  mode: 'backend' | 'preview'
+  source: string
+}
 
 type AppData = {
   entries: DiaryEntry[]
   beneficiaries: Beneficiary[]
   policy: string
+  pendingReleaseSource: string | null
+  pendingReleaseError: string
+  policyConfirmation: PolicyConfirmation | null
+  policyConfirmationError: string
+  policyPublishOutcome: PolicyPublishOutcome | null
+  policyFrozen: boolean
+  isPublishingPolicy: boolean
   addEntry: (entry: NewEntry) => void
   addBeneficiary: (beneficiary: NewBeneficiary) => void
   setPolicy: (policy: string) => void
+  requestPolicyConfirmation: (source: string, intent: PolicyPublishIntent) => void
+  cancelPolicyConfirmation: () => void
+  retryPendingRelease: () => void
+  confirmPolicyUpdate: () => Promise<boolean>
+  clearPolicyPublishOutcome: () => void
   refreshEntries: () => Promise<void>
   entriesLoading: boolean
   entriesError: string
@@ -22,6 +51,13 @@ export function AppDataProvider({ children }: PropsWithChildren) {
   const [entries, setEntries] = useState(initialEntries)
   const [beneficiaries, setBeneficiaries] = useState(initialBeneficiaries)
   const [policy, setPolicy] = useState(initialPolicy)
+  const [pendingReleaseSource, setPendingReleaseSource] = useState<string | null>(null)
+  const [pendingReleaseError, setPendingReleaseError] = useState('')
+  const [policyConfirmation, setPolicyConfirmation] = useState<PolicyConfirmation | null>(null)
+  const [policyConfirmationError, setPolicyConfirmationError] = useState('')
+  const [policyPublishOutcome, setPolicyPublishOutcome] = useState<PolicyPublishOutcome | null>(null)
+  const [policyFrozen, setPolicyFrozen] = useState(false)
+  const [isPublishingPolicy, setIsPublishingPolicy] = useState(false)
   const [entriesLoading, setEntriesLoading] = useState(false)
   const [entriesError, setEntriesError] = useState('')
   const { accessToken, clearRejectedSession } = useAuth()
@@ -49,6 +85,7 @@ export function AppDataProvider({ children }: PropsWithChildren) {
           source: 'api',
           kind: entry.kind,
           topics: entry.topics,
+          disclaimer: entry.disclaimer,
         }
       }))
     } catch (error) {
@@ -93,15 +130,125 @@ export function AppDataProvider({ children }: PropsWithChildren) {
     ])
   }
 
+  const requestPolicyConfirmation = (source: string, intent: PolicyPublishIntent) => {
+    setPolicyPublishOutcome(null)
+    setPolicyConfirmationError('')
+    if (intent === 'letter-release') {
+      setPendingReleaseSource(source)
+      setPendingReleaseError('')
+    }
+    setPolicyConfirmation({
+      source,
+      intent,
+      mode: intent === 'letter-release' || accessToken ? 'backend' : 'preview',
+    })
+  }
+
+  const cancelPolicyConfirmation = () => {
+    setPolicyConfirmation(null)
+    setPolicyConfirmationError('')
+  }
+
+  const retryPendingRelease = () => {
+    if (!pendingReleaseSource || policyFrozen) return
+    setPolicyConfirmationError('')
+    setPendingReleaseError('')
+    setPolicyConfirmation({
+      source: pendingReleaseSource,
+      intent: 'letter-release',
+      mode: 'backend',
+    })
+  }
+
+  const confirmPolicyUpdate = async (): Promise<boolean> => {
+    if (!policyConfirmation || isPublishingPolicy) return false
+    const confirmation = policyConfirmation
+
+    if (!accessToken) {
+      if (confirmation.mode === 'backend') {
+        const message = confirmation.intent === 'letter-release'
+          ? 'Sign in again to set the release date.'
+          : 'Sign in again to publish this policy.'
+        setPolicyConfirmationError(message)
+        if (confirmation.intent === 'letter-release') {
+          setPendingReleaseError(message)
+        }
+        return false
+      }
+      setPolicy(confirmation.source)
+      setPolicyConfirmation(null)
+      setPolicyPublishOutcome({
+        intent: confirmation.intent,
+        source: confirmation.source,
+        mode: 'preview',
+      })
+      return true
+    }
+
+    setIsPublishingPolicy(true)
+    setPolicyConfirmationError('')
+    try {
+      await apiRequest<PolicyUpdateResponse>('/policy', {
+        method: 'PUT',
+        token: accessToken,
+        body: { source: confirmation.source },
+      })
+      setPolicy(confirmation.source)
+      setPolicyFrozen(false)
+      if (confirmation.intent === 'letter-release') {
+        setPendingReleaseSource(null)
+        setPendingReleaseError('')
+      }
+      setPolicyConfirmation(null)
+      setPolicyPublishOutcome({
+        intent: confirmation.intent,
+        source: confirmation.source,
+        mode: 'backend',
+      })
+      return true
+    } catch (error) {
+      clearRejectedSession(error)
+      const message = error instanceof ApiError && error.status === 401
+        ? confirmation.intent === 'letter-release'
+          ? 'Your session expired. Sign in again to set the release date.'
+          : 'Your session expired. Sign in again to publish this policy.'
+        : error instanceof ApiError
+          ? error.message
+          : 'The policy could not be saved.'
+      if (error instanceof ApiError && error.code === 'policy_frozen') {
+        setPolicyFrozen(true)
+      }
+      setPolicyConfirmationError(message)
+      if (confirmation.intent === 'letter-release') {
+        setPendingReleaseError(message)
+      }
+      return false
+    } finally {
+      setIsPublishingPolicy(false)
+    }
+  }
+
   return (
     <AppDataContext.Provider
       value={{
         entries,
         beneficiaries,
         policy,
+        pendingReleaseSource,
+        pendingReleaseError,
+        policyConfirmation,
+        policyConfirmationError,
+        policyPublishOutcome,
+        policyFrozen,
+        isPublishingPolicy,
         addEntry,
         addBeneficiary,
         setPolicy,
+        requestPolicyConfirmation,
+        cancelPolicyConfirmation,
+        retryPendingRelease,
+        confirmPolicyUpdate,
+        clearPolicyPublishOutcome: () => setPolicyPublishOutcome(null),
         refreshEntries,
         entriesLoading,
         entriesError,

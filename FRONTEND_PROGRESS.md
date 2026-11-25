@@ -101,10 +101,16 @@ Depends on F11b; backend F7, F7a, F7c–F7e, F8, F9a.
 ### F10 – Letter of Wishes (front end) `[~]`
 - [x] Letter entry screen with recipient and release date
 - [x] Always-visible "not a legal will" disclaimer
+- [x] Validate strict policy person IDs and real calendar dates; warn without blocking for past dates
+- [x] Save the letter first, then confirm and publish the escaped release rule as a complete policy source
+- [x] Keep failed release sources in shared app state; retry sends only `PUT /policy`
+- [x] Show the letter-specific duplicate-title message and the server disclaimer on API letter records
+- [x] Confirm full-source replacement before policy publishing; keep unauthenticated use preview-only
+- [x] Share a person-ID helper between letter validation and policy templates
 - **Paradigm:** n/a (interface)
-- **Files changed:** pending
-- **Tests:** pending
-- **Open issues:** Not started. Letter title duplicates are rejected by the backend for the same owner; the UI should show that error.
+- **Files changed:** `frontend/mobile/services/policySource.ts`, `frontend/mobile/components/PolicyPublishManager.tsx`, `frontend/mobile/context/AppDataProvider.tsx`, `frontend/mobile/app/_layout.tsx`, `frontend/mobile/app/entries/new.tsx`, `frontend/mobile/app/entries/[id].tsx`, `frontend/mobile/app/(tabs)/policy.tsx`, API/data types, and focused tests
+- **Tests:** `npm test` (8 suites, 34 tests passed); `npm run lint` and `npm run typecheck` pass. Three generated full policy sources parsed successfully with the backend parser.
+- **Open issues:** End-to-end verification against the real backend: pending. Authenticated owners should start from an empty policy in F11d because the app cannot read the active backend source. Beneficiary types do not expose person IDs; a recipient picker remains a later improvement.
 - **Verified by:** pending
 
 ### F11g – Front end quality: tests and accessibility `[~]`

@@ -21,11 +21,15 @@ export type LoginResponse = {
   token_type: 'Bearer'
 }
 
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: Scripting (typed API boundary)
+
 export type ApiEntry = {
   entry_id: string
   kind: 'diary' | 'letter'
   created_at: string
   topics: string[]
+  disclaimer?: string
 }
 
 export type ApiEntryList = {
