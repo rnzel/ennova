@@ -189,6 +189,7 @@ Device trust, recovery codes, password reset, full trustee verification workflow
 | 2026-11-20 | Primary front end is the Expo app in `frontend/mobile/`; Vite app is reference only | Repo docs state the mobile app is the intended target (recorded from audit) |
 | 2026-11-20 | Skeleton state uses React Context with fictional in-memory data | Lets screens be built before the backend API is wired (recorded from audit) |
 | 2026-11-20 | Vite browser prototype removed; `frontend/mobile/` is the only frontend | Reduce confusion; mobile is the intended target. Full prototype kept in commit `be7849d` |
+| 2026-11-25 | Frontend Copilot guidance moved to `.github/instructions/frontend.instructions.md` with `applyTo: "frontend/**"` | Ensure frontend-specific guidance is loaded for frontend files and matches the current Expo/API/test setup |
 
 ## Weekly log
 | Week | What was done | Next |
@@ -199,6 +200,7 @@ Device trust, recovery codes, password reset, full trustee verification workflow
 | F11 API and policy (2026-11-21) | Added the centralized API client, in-memory auth session, API-backed entry metadata/create flow, policy submission, invitation issuance/registration, and grounded Q&A | Finish F11g screen tests and accessibility pass; retain documented backend-contract limitations |
 | Web preview (2026-11-21) | Started Expo web and changed the preview configuration from server output to static output so React Native Web styles are emitted for the visible frontend preview | Verify the restarted web page visually; keep the server running on port 8081 |
 | F11g quality pass (2026-11-22) | Added login/letter form tests; extended accessibility labels/roles and 44-point targets across the remaining reviewed screens; improved placeholder/footnote contrast; all 11 tests, lint, and typecheck pass | Resolve the unstyled Expo web preview or verify a styled native build at the minimum device size before deciding whether F11g can be marked complete |
+| Instructions update (2026-11-25) | Moved frontend-specific guidance to a path-specific Copilot instruction with current API, policy, lint, and test guidance | Continue F11g quality/accessibility audit |
 
 ## Consolidated next steps
 

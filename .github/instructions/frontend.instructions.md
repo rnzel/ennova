@@ -1,3 +1,7 @@
+---
+applyTo: "frontend/**"
+---
+
 # Copilot Instructions: ENNOVA Frontend
 
 These instructions cover the **frontend only**. They extend the repository-wide `.github/copilot-instructions.md`; if the two ever conflict, the repository-wide file wins.
@@ -13,7 +17,7 @@ These instructions cover the **frontend only**. They extend the repository-wide 
 1. Read `PROGRESS.md` (root) and `FRONTEND_PROGRESS.md`.
 2. Build **one feature at a time**. Ask for approval before any large change (new dependency, restructuring, replacing state management, touching routing layout).
 3. Work on a feature branch. Never commit directly to `main` or `master`.
-4. When done: run type-check and lint, update `FRONTEND_PROGRESS.md` (and `PROGRESS.md` if a tracked feature changed), and log any AI-assisted code in `docs/ai-use-log.md` with the verifier's name.
+4. When done: run type-check, lint, and tests; update `FRONTEND_PROGRESS.md`; follow the active task's scope for any other tracker; and log significant AI-assisted code in `docs/ai-use-log.md` with a blank verifier placeholder until review.
 
 ## 3. Tech stack (as documented from the repo)
 
@@ -25,10 +29,12 @@ These instructions cover the **frontend only**. They extend the repository-wide 
 | State | React Context plus `useState` (`context/AppDataProvider.tsx`) |
 | Navigation | Expo Router (file-based) only |
 | Package manager | npm |
-| HTTP client | None yet |
-| Tests | None yet |
+| HTTP client | Centralized `services/api.ts` |
+| Session | `context/AuthProvider.tsx`, in-memory bearer token |
+| Tests | Jest, `jest-expo`, React Native Testing Library |
+| Lint | Expo ESLint (`npm run lint`) |
 
-Check `frontend/mobile/package.json` for exact versions before adding or upgrading anything.
+Check `frontend/mobile/package.json` and `package-lock.json` for exact versions before adding or upgrading anything. Do not add dependencies without approval.
 
 ## 4. Folder structure
 
@@ -42,6 +48,7 @@ frontend/mobile/
 ├── constants/      Theme colors and spacing (theme.ts)
 ├── context/        In-memory app state provider
 ├── data/           Fictional mock data
+├── services/       API client and pure policy-source helpers
 └── types.ts        Shared data types
 ```
 
@@ -54,14 +61,16 @@ Run from `frontend/mobile/`:
 
 | Task | Command |
 |---|---|
-| Install | `npm install` |
+| Clean install | `npm ci` |
 | Start | `npm start` |
 | Android / iOS / Web | `npm run android` / `npm run ios` / `npm run web` |
 | Type-check | `npm run typecheck` |
+| Lint | `npm run lint` |
+| Tests | `npm test` |
 | Export | `npx expo export --platform android` |
 
-- Add Expo-native packages with `npx expo install <package>`, not plain `npm install`.
-- Run lint and type-check before declaring any task complete.
+- If an approved Expo-native dependency is added, use `npx expo install <package>`.
+- Run type-check, lint, and tests before declaring any task complete. Do not run `npm install` to update the lockfile.
 
 ## 6. Coding conventions (match existing code)
 
@@ -82,21 +91,25 @@ Run from `frontend/mobile/`:
 ## 8. State and data
 
 - Read and mutate app data through `useAppData`. Do not create parallel stores.
-- Current data is fictional, in memory, and resets on restart. Do not add persistence, networking, or a state library without approval.
+- Preview data is fictional, in memory, and resets on restart. Some owner flows use the backend API; use `services/api.ts`, keep loading and safe error states explicit, and never add parallel networking or a state library.
 - Show an explicit empty state for lists and search results (see `app/(tabs)/journal.tsx`).
-- When API integration is approved: put API calls in a dedicated module (not inside screens), model loading and error states explicitly, and never log tokens or diary content.
+- API-backed owner login/registration, entries, invitations, policy updates, and grounded Q&A are implemented through the shared API module. Treat mock and beneficiary-preview surfaces as previews, not authorization.
 
 ## 9. Access policy rule (critical)
 
-- UI policy actions must produce **policy text** that is passed through the project's lexer, parser, and interpreter.
+- UI policy actions produce policy-language source text and submit it through `PUT /policy`; the backend lexer, parser, and interpreter validate and process it.
 - The frontend must **never** generate Prolog facts directly.
+- The policy source is replaced as a whole; the app has no `GET /policy`. Show the complete source and replacement warning before sending it.
+- Release dates are policy statements sent through `PUT /policy`, not fields on the letter entry. Letter save and release-rule publication are separate requests.
+- Use `services/policySource.ts` for person-ID validation/normalization and safe release-rule source generation; do not duplicate reserved-word lists.
 
 ## 10. Data, privacy, and security
 
 - Use fictional data only. Never enter real diary content, real names, or credentials in code, mock data, tests, or screenshots.
 - Never expose secrets. Never commit `.env` or credential files.
-- Sign-in is simulated; do not present it as real authentication. Keep the `PreviewNotice` disclaimers in place.
-- If tokens are ever stored on device, use a secure store (for example Expo SecureStore), and only after approval.
+- Owner sign-in and registration use the configured backend. Bearer tokens remain in React memory and reset on sign-out or restart; do not log tokens, passwords, emails, titles, or diary content.
+- Keep preview notices on mock or incomplete surfaces. Backend authorization remains authoritative; frontend labels and state do not grant access.
+- Do not add persistent token storage or a secure-storage dependency without approval.
 
 ## 11. Accessibility
 
@@ -105,8 +118,8 @@ Run from `frontend/mobile/`:
 
 ## 12. Testing and verification
 
-- The repository requires tests to be written and run for new features, but no test framework is installed yet. If a feature needs tests, propose a framework (for example Jest with `jest-expo` and React Native Testing Library) and wait for approval before adding it.
-- Until then, at minimum run `npm run typecheck`, run the app, and manually check the changed screen on at least one native target.
+- Add focused tests for new behavior using the existing Jest, `jest-expo`, and React Native Testing Library setup; no test dependency is needed for routine frontend changes.
+- Run `npm test`, `npm run lint`, and `npm run typecheck`. For visual changes, describe the platform/device check actually performed; do not claim a native or small-screen check without doing it.
 - Describe what you verified in the PR.
 
 ## 13. Git and PRs
@@ -118,14 +131,13 @@ Run from `frontend/mobile/`:
 
 - Do not touch `backend/`, `android/`, or `ios/`.
 - Do not add dependencies without approval.
-- Do not implement real auth, authorization, or API calls until the backend contract is confirmed.
-- Do not invent endpoints, env variable names, or Node version requirements; none are documented yet.
+- Do not invent endpoints or environment variables. Verify new API behavior against the backend contract and keep authorization on the backend.
 - Do not mix multiple features in one change.
 
 ## 15. Unresolved questions (ask the team, do not assume)
 
-- Supported Node.js versions.
-- Backend REST endpoints and authentication flow.
+- Team-certified Node.js support range. Installed Expo/React Native engines currently intersect at `^22.13.0 || ^24.3.0 || >=26.0.0`; confirm the team's supported range before claiming certification.
 - Whether state should persist locally or the backend is the source of truth.
-- Required test framework and accessibility standard.
-- Whether mobile feature F11 is approved for scope (instructor approval pending per `PROGRESS.md`).
+- Persistent secure token storage is not implemented.
+- The backend has no `GET /policy`, so the frontend cannot read an existing active policy source.
+- Instructor approval for optional mobile scope is tracked in `PROGRESS.md`; follow the active task's scope and do not assume approval.

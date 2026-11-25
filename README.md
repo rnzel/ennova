@@ -78,7 +78,7 @@ The local `.env` is loaded by the app configuration and is ignored by Git. Missi
 | `docs/grammar/` | EBNF grammar and sample policy programs |
 | `docs/` | Design notes, access test table, AI-use log |
 | `docs/reports/` | Design report and presentation material |
-| `.github/` | Copilot instructions |
+| `.github/` | Repository Copilot instructions and path-specific instructions in `.github/instructions/` |
 | `PROGRESS.md` | Feature tracker and weekly log |
 
 ## Notes
