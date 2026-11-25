@@ -1,3 +1,6 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: Functional (fictional preview fixtures)
+
 import type { Beneficiary, DiaryEntry } from '../types'
 
 export const initialEntries: DiaryEntry[] = [

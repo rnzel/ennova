@@ -1,3 +1,6 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: Functional (read-only preview UI)
+
 import { Link } from 'expo-router'
 import { StyleSheet, Text, View } from 'react-native'
 import { AppScreen } from '@/components/AppScreen'
@@ -6,7 +9,7 @@ import { Panel } from '@/components/Panel'
 import { PreviewNotice } from '@/components/PreviewNotice'
 import { VisibilityBadge } from '@/components/VisibilityBadge'
 import { useAppData } from '@/context/AppDataProvider'
-import { colors, spacing } from '@/constants/theme'
+import { colors, minimumTouchTarget, spacing } from '@/constants/theme'
 
 export default function BeneficiaryScreen() {
   const { entries } = useAppData()
@@ -16,7 +19,14 @@ export default function BeneficiaryScreen() {
     <AppScreen>
       <View style={styles.header}>
         <Brand />
-        <Link href="/login" style={styles.exit}>Exit preview</Link>
+        <Link
+          href="/login"
+          accessibilityRole="link"
+          accessibilityLabel="Exit beneficiary preview"
+          style={styles.exit}
+        >
+          Exit preview
+        </Link>
       </View>
       <Text style={styles.eyebrow}>BENEFICIARY PREVIEW</Text>
       <Text style={styles.title}>A window into a shared story.</Text>
@@ -39,7 +49,14 @@ export default function BeneficiaryScreen() {
       {sharedEntries.length === 0 && (
         <Panel><Text style={styles.entrySummary}>No shared sample entries are available.</Text></Panel>
       )}
-      <Link href="/login" style={styles.back}>Return to sign in</Link>
+      <Link
+        href="/login"
+        accessibilityRole="link"
+        accessibilityLabel="Return to sign in"
+        style={styles.back}
+      >
+        Return to sign in
+      </Link>
     </AppScreen>
   )
 }
@@ -51,6 +68,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   exit: {
+    minHeight: minimumTouchTarget,
+    justifyContent: 'center',
     color: colors.teal,
     fontSize: 12,
     fontWeight: '700',
@@ -96,6 +115,8 @@ const styles = StyleSheet.create({
   },
   back: {
     alignSelf: 'center',
+    minHeight: minimumTouchTarget,
+    justifyContent: 'center',
     marginVertical: spacing.sm,
     color: colors.teal,
     fontSize: 12,

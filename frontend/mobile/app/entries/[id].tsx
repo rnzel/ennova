@@ -21,7 +21,11 @@ export default function EntryDetailScreen() {
       <AppScreen>
         <PageTitle title="Entry not found" description="It may have been cleared when the app restarted." />
         <Link href="/(tabs)/journal" asChild>
-          <Pressable accessibilityRole="link" style={styles.button}>
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel="Back to journal"
+            style={styles.button}
+          >
             <Text style={styles.buttonText}>Back to journal</Text>
           </Pressable>
         </Link>
@@ -31,7 +35,14 @@ export default function EntryDetailScreen() {
 
   return (
     <AppScreen>
-      <Link href="/(tabs)/journal" style={styles.back} accessibilityRole="link">‹  All entries</Link>
+      <Link
+        href="/(tabs)/journal"
+        accessibilityRole="link"
+        accessibilityLabel="Back to all entries"
+        style={styles.back}
+      >
+        ‹  All entries
+      </Link>
       <PageTitle
         eyebrow={entry.kind === 'letter' ? 'LETTER OF WISHES' : 'DIARY ENTRY'}
         title={entry.title}

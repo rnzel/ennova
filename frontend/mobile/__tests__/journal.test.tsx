@@ -1,3 +1,6 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: Functional (journal UI tests)
+
 import { fireEvent, render } from '@testing-library/react-native'
 import type { ReactNode } from 'react'
 import JournalScreen from '@/app/(tabs)/journal'
@@ -23,7 +26,7 @@ describe('JournalScreen', () => {
     expect(view.queryByText('Sunday lunch traditions')).toBeNull()
 
     await fireEvent.changeText(view.getByLabelText('Search entries'), '')
-    await fireEvent.press(view.getByRole('button', { name: 'Shared' }))
+    await fireEvent.press(view.getByRole('button', { name: 'Filter entries: Shared' }))
     expect(view.getByText('Sunday lunch traditions')).toBeTruthy()
     expect(view.queryByText('The garden after the rain')).toBeNull()
   })

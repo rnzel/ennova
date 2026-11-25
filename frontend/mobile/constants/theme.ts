@@ -1,3 +1,6 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: Functional (design tokens)
+
 export const colors = {
   navy: '#073A5C',
   teal: '#007A78',
@@ -28,3 +31,5 @@ export const spacing = {
   lg: 22,
   xl: 30,
 } as const
+
+export const minimumTouchTarget = 44

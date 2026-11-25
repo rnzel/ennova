@@ -1,3 +1,6 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: Scripting (authentication flow orchestration)
+
 import { useState } from 'react'
 import { Link, router } from 'expo-router'
 import {
@@ -171,6 +174,9 @@ export default function LoginScreen() {
             />
             <View style={styles.divider} />
             <Pressable
+              accessibilityLabel={
+                mode === 'login' ? 'Create a new owner account' : 'I already have an account'
+              }
               accessibilityRole="button"
               accessibilityState={{ disabled: isLoading }}
               disabled={isLoading}
@@ -189,6 +195,9 @@ export default function LoginScreen() {
             </Pressable>
             <View style={styles.divider} />
             <Pressable
+              accessibilityLabel={
+                mode === 'beneficiary' ? 'Continue as owner' : 'Register with an invitation code'
+              }
               accessibilityRole="button"
               accessibilityState={{ disabled: isLoading }}
               disabled={isLoading}
@@ -207,14 +216,22 @@ export default function LoginScreen() {
             </Pressable>
             <View style={styles.divider} />
             <Link href="/beneficiary" asChild>
-              <Pressable accessibilityRole="link" style={styles.secondaryButton}>
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel="Open beneficiary preview"
+                style={styles.secondaryButton}
+              >
                 <Text style={styles.secondaryText}>Open beneficiary preview</Text>
                 <Text style={styles.secondaryArrow}>↗</Text>
               </Pressable>
             </Link>
             <Text style={styles.footnote}>API access is not persistent. Tokens reset on restart.</Text>
             <Link href="/" asChild>
-              <Pressable style={styles.backLink}>
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel="Back to intro"
+                style={styles.backLink}
+              >
                 <Text style={styles.backText}>Back to intro</Text>
               </Pressable>
             </Link>

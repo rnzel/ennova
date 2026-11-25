@@ -54,7 +54,10 @@ export function PolicyPublishManager() {
         transparent
         visible={confirmation !== null}
       >
-        <View style={styles.backdrop}>
+        <ScrollView
+          contentContainerStyle={styles.backdropContent}
+          style={styles.backdrop}
+        >
           <View style={styles.dialog} accessibilityViewIsModal>
             <Text accessibilityRole="header" style={styles.title}>
               Confirm policy replacement
@@ -111,7 +114,7 @@ export function PolicyPublishManager() {
               <Text style={styles.cancelText}>Cancel</Text>
             </Pressable>
           </View>
-        </View>
+        </ScrollView>
       </Modal>
     </>
   )
@@ -137,13 +140,15 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     flex: 1,
+    backgroundColor: 'rgba(7, 58, 92, 0.45)',
+  },
+  backdropContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     padding: spacing.md,
-    backgroundColor: 'rgba(7, 58, 92, 0.45)',
   },
   dialog: {
     gap: spacing.sm,
-    maxHeight: '90%',
     padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,

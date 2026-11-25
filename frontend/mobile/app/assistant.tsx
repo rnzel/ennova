@@ -1,3 +1,6 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: Scripting (grounded Q&A API orchestration)
+
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { AppScreen } from '@/components/AppScreen'
@@ -122,6 +125,7 @@ export default function AssistantScreen() {
             {lastQuestion ? (
               <Pressable
                 accessibilityRole="button"
+                accessibilityLabel="Retry question"
                 onPress={() => void ask(lastQuestion)}
                 style={styles.retryButton}
               >

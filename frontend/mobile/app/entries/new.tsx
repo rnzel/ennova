@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import { router } from 'expo-router'
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { AppScreen } from '@/components/AppScreen'
 import { PageTitle } from '@/components/PageTitle'
 import { PreviewNotice } from '@/components/PreviewNotice'
@@ -143,7 +143,6 @@ export default function NewEntryScreen() {
 
   return (
     <AppScreen>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <PageTitle
           eyebrow="NEW JOURNAL ENTRY"
           title="Capture a moment."
@@ -245,6 +244,7 @@ export default function NewEntryScreen() {
         <View style={styles.actions}>
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel="Cancel entry"
             style={styles.cancel}
             onPress={() => router.back()}
           >
@@ -266,7 +266,6 @@ export default function NewEntryScreen() {
             <Text style={styles.saveText}>{isSaving ? 'Saving…' : 'Save entry'}</Text>
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
     </AppScreen>
   )
 }
@@ -285,6 +284,7 @@ function ChoiceRow<T extends string>({
       {options.map((option) => (
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={option}
           accessibilityState={{ selected: selected === option }}
           key={option}
           onPress={() => onSelect(option)}

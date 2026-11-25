@@ -1,3 +1,6 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: Functional (screen composition)
+
 import { Link } from 'expo-router'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { AppScreen } from '@/components/AppScreen'
@@ -7,7 +10,7 @@ import { Panel } from '@/components/Panel'
 import { PreviewNotice } from '@/components/PreviewNotice'
 import { PageTitle } from '@/components/PageTitle'
 import { useAppData } from '@/context/AppDataProvider'
-import { colors, spacing } from '@/constants/theme'
+import { colors, minimumTouchTarget, spacing } from '@/constants/theme'
 
 export default function HomeScreen() {
   const { entries, beneficiaries } = useAppData()
@@ -33,7 +36,11 @@ export default function HomeScreen() {
           Write a memory or review the sharing choices in your sample workspace.
         </Text>
         <Link href="/entries/new" asChild>
-          <Pressable accessibilityRole="link" style={styles.heroButton}>
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel="Create a new diary entry"
+            style={styles.heroButton}
+          >
             <Text style={styles.heroButtonText}>＋  New diary entry</Text>
           </Pressable>
         </Link>
@@ -51,7 +58,14 @@ export default function HomeScreen() {
             <Text style={styles.sectionEyebrow}>YOUR JOURNAL</Text>
             <Text style={styles.sectionTitle}>Recent entries</Text>
           </View>
-          <Link href="/(tabs)/journal" accessibilityRole="link" style={styles.link}>View all</Link>
+          <Link
+            href="/(tabs)/journal"
+            accessibilityRole="link"
+            accessibilityLabel="View all journal entries"
+            style={styles.link}
+          >
+            View all
+          </Link>
         </View>
         {entries.slice(0, 3).map((entry) => <EntryRow entry={entry} key={entry.id} />)}
       </Panel>
@@ -62,7 +76,14 @@ export default function HomeScreen() {
             <Text style={styles.sectionEyebrow}>PEOPLE YOU TRUST</Text>
             <Text style={styles.sectionTitle}>Access overview</Text>
           </View>
-          <Link href="/(tabs)/people" accessibilityRole="link" style={styles.link}>Manage</Link>
+          <Link
+            href="/(tabs)/people"
+            accessibilityRole="link"
+            accessibilityLabel="Manage beneficiaries"
+            style={styles.link}
+          >
+            Manage
+          </Link>
         </View>
         <Text style={styles.panelDescription}>
           {beneficiaries.length} sample beneficiaries across pending, review, and granted states.
@@ -133,7 +154,7 @@ const styles = StyleSheet.create({
   },
   heroButton: {
     alignSelf: 'flex-start',
-    minHeight: 44,
+    minHeight: minimumTouchTarget,
     justifyContent: 'center',
     marginTop: 4,
     paddingHorizontal: 15,
@@ -147,6 +168,7 @@ const styles = StyleSheet.create({
   },
   stats: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 9,
   },
   stat: {
@@ -192,6 +214,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   link: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xs,
     color: colors.teal,
     fontSize: 12,
     fontWeight: '700',

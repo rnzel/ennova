@@ -1,3 +1,6 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: Functional (auth session tests)
+
 import { act, render } from '@testing-library/react-native'
 import { Text, View } from 'react-native'
 import { AuthProvider, useAuth } from './AuthProvider'

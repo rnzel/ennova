@@ -49,7 +49,7 @@ describe('PolicyScreen', () => {
       </AuthProvider>,
     )
 
-    await fireEvent.press(view.getByRole('button', { name: 'deny verbatim' }))
+    await fireEvent.press(view.getByRole('button', { name: 'Read access: deny verbatim' }))
     await fireEvent.press(view.getByRole('button', { name: 'Generate policy text' }))
 
     expect(view.getByLabelText('Policy source').props.value).toContain(

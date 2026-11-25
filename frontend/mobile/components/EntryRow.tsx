@@ -1,3 +1,6 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: Functional (reusable entry UI)
+
 import { Link } from 'expo-router'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { colors } from '@/constants/theme'
@@ -12,6 +15,7 @@ export function EntryRow({ entry }: { entry: DiaryEntry }) {
     >
       <Pressable
         accessibilityRole="link"
+        accessibilityLabel={`${entry.title}, ${entry.date}, ${entry.visibility}`}
         style={({ pressed }) => [styles.row, pressed && styles.pressed]}
       >
         <View style={styles.copy}>

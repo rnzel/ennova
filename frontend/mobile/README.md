@@ -4,14 +4,18 @@ This directory contains the Expo Router and React Native frontend for ENNOVA.
 
 ## Supported setup
 
-- Node.js 20.19 or newer
+- Node.js matching the Expo 58 / React Native 0.88 engine intersection:
+  `^22.13.0 || ^24.3.0 || >=26.0.0`. The team's certified Node range is to be
+  confirmed; this dependency intersection is not a team support declaration.
 - npm 10 or newer
 - Expo Go or an emulator for the Android, iOS, or web preview
+- Minimum supported layout target: 360 × 640 logical points. Real-device
+  verification at this size remains pending.
 
 From this directory:
 
 ```powershell
-npm install
+npm ci
 npm start
 ```
 

@@ -1,3 +1,6 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: n/a (interface navigation)
+
 import { SymbolView } from 'expo-symbols'
 import { Tabs } from 'expo-router'
 import { colors } from '@/constants/theme'
@@ -19,7 +22,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
         tabBarStyle: {
-          height: 63,
+          minHeight: 63,
           paddingTop: 6,
           paddingBottom: 7,
           borderTopColor: colors.border,

@@ -86,7 +86,8 @@ Run from `frontend/mobile/`:
 - Use Expo Router only. Do not add React Navigation setup or React Router DOM in the mobile app.
 - Existing routes: `/`, `/login`, `/(tabs)` (index, journal, people, policy, more), `/entries/new`, `/entries/[id]`, `/assistant`, `/settings`, `/beneficiary`, and `+not-found`.
 - Wrap screens in `AppScreen` (safe area plus optional scroll). Reuse `ActionButton`, `Panel`, `PageTitle`, `PreviewNotice`, `EntryRow`, `VisibilityBadge`, and `Brand` before creating new components.
-- Design mobile-first and cross-platform. Handle keyboard avoidance on forms, and consider performance (stable list keys, avoid heavy work in render).
+- Design mobile-first and cross-platform. Treat 360 × 640 logical points as the minimum layout target; a real-device check at this size remains pending. `AppScreen` provides scrolling and keyboard avoidance for app screens; login has its own scroll/keyboard wrapper.
+- Keep content scrollable at large system font sizes, avoid fixed content heights, and preserve 44-point minimum interactive targets.
 
 ## 8. State and data
 
@@ -137,6 +138,7 @@ Run from `frontend/mobile/`:
 ## 15. Unresolved questions (ask the team, do not assume)
 
 - Team-certified Node.js support range. Installed Expo/React Native engines currently intersect at `^22.13.0 || ^24.3.0 || >=26.0.0`; confirm the team's supported range before claiming certification.
+- Minimum viewport is 360 × 640 logical points; verify on a real small phone before marking the layout check complete.
 - Whether state should persist locally or the backend is the source of truth.
 - Persistent secure token storage is not implemented.
 - The backend has no `GET /policy`, so the frontend cannot read an existing active policy source.

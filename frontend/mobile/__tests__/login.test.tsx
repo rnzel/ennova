@@ -1,3 +1,6 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: Functional (login UI tests)
+
 import { fireEvent, render } from '@testing-library/react-native'
 import type { ReactNode } from 'react'
 import LoginScreen from '@/app/login'
@@ -17,6 +20,16 @@ describe('LoginScreen', () => {
     process.env.EXPO_PUBLIC_API_BASE_URL = 'http://localhost:5000'
     fetchMock.mockReset()
     globalThis.fetch = fetchMock
+  })
+
+  it('exposes the intro navigation as a named link', async () => {
+    const view = await render(
+      <AuthProvider>
+        <LoginScreen />
+      </AuthProvider>,
+    )
+
+    expect(view.getByRole('link', { name: 'Back to intro' })).toBeTruthy()
   })
 
   it('shows field-level guidance rather than submitting an empty form', async () => {

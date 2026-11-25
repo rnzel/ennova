@@ -116,14 +116,15 @@ Depends on F11b; backend F7, F7a, F7c–F7e, F8, F9a.
 ### F11g – Front end quality: tests and accessibility `[~]`
 - [x] Agree on Jest, `jest-expo`, and React Native Testing Library; approval received 2026-11-21
 - [x] Eleven tests cover API request/error behavior, auth/logout, journal search/filter, policy deny-rule generation, login validation/beneficiary mode, and Letter of Wishes form requirements
-- [~] Added accessible labels/roles/states to key forms, navigation, and actions; brought reviewed text-input/action targets to at least 44 points; updated confirmed low-contrast placeholder/footnote text and the teal text accent
+- [~] Added accessible names/roles/states to reviewed controls, keyboard avoidance and scrolling, and 44-point navigation targets; larger system-font/device validation remains pending
 - [x] Reviewed remaining theme and literal text color pairs; all measured pairs meet 4.5:1 contrast (4.70:1 minimum)
-- [~] Attempted a 320×568 viewport check across the routes; the browser DOM showed no horizontal overflow, but the web preview rendered without the React Native styles, so this is not a valid visual/device-size verification
+- [~] Attempted a 320×568 viewport check across the routes; the browser DOM showed no horizontal overflow, but the web preview rendered without React Native styles. The minimum target is now 360×640 logical points; real small-phone check remains pending
 - [x] `npm test -- --watch=false`, `npm run lint`, and `npm run typecheck` pass (2026-11-22)
+- [x] Current full frontend validation: `npm test` (9 suites, 36 tests), `npm run lint`, and `npm run typecheck` pass (2026-11-25)
 - **Paradigm:** n/a (quality)
 - **Files changed:** `frontend/mobile/package.json`, `frontend/mobile/tsconfig.json`, `frontend/mobile/services/api.test.ts`, `frontend/mobile/context/AuthProvider.test.tsx`, `frontend/mobile/__tests__/journal.test.tsx`, `frontend/mobile/__tests__/policy.test.tsx`, `frontend/mobile/__tests__/entry-form.test.tsx`, `frontend/mobile/__tests__/login.test.tsx`, reviewed app screens, `frontend/mobile/components/ActionButton.tsx`, `frontend/mobile/components/Brand.tsx`, `frontend/mobile/components/EntryRow.tsx`, `frontend/mobile/components/PageTitle.tsx`, `frontend/mobile/constants/theme.ts`
 - **Tests:** `npm test -- --watch=false` (11 passed); `npm run lint` and `npm run typecheck` pass (2026-11-22)
-- **Open issues:** This remains a focused pass, not a full-app accessibility certification. Resolve the unstyled Expo web preview or verify on a correctly styled native/device build before concluding the minimum-dimension audit.
+- **Open issues:** This remains a focused pass, not a full-app accessibility certification. Real small-phone check at 360×640 and teammate verification (Bart) remain pending.
 - **Verified by:** pending
 
 ### F11 – Mobile interface (Expo) overall `[~]`
@@ -202,11 +203,13 @@ Device trust, recovery codes, password reset, full trustee verification workflow
 | F11g quality pass (2026-11-22) | Added login/letter form tests; extended accessibility labels/roles and 44-point targets across the remaining reviewed screens; improved placeholder/footnote contrast; all 11 tests, lint, and typecheck pass | Resolve the unstyled Expo web preview or verify a styled native build at the minimum device size before deciding whether F11g can be marked complete |
 | Instructions update (2026-11-25) | Moved frontend-specific guidance to a path-specific Copilot instruction with current API, policy, lint, and test guidance | Continue F11g quality/accessibility audit |
 
+F11g quality continuation (2026-11-25): extended keyboard/scroll behavior, accessible names and navigation targets; documented the 360×640 minimum layout target and Node engine intersection. Real small-phone check and teammate verification (Bart) remain pending.
+
 ## Consolidated next steps
 
 1. Continue F11g:
    - Add focused `AppDataProvider` and remaining policy/API form tests where useful.
-   - Remaining measured text-color pairs pass 4.5:1; resolve the unstyled web preview or verify a correctly styled native build at the minimum supported device dimensions.
+   - Remaining measured text-color pairs pass 4.5:1; verify every screen on a real device at 360×640 logical points and obtain teammate verification (Bart).
    - Do not claim full-app accessibility certification without a complete device and screen audit.
    - Keep `npm test`, `npm run lint`, and `npm run typecheck` passing.
 2. Continue F11c:

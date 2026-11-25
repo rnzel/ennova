@@ -1,6 +1,9 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: Functional (intro UI)
+
 import { router } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { StyleSheet, Text, View } from 'react-native'
+import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { ActionButton } from '@/components/ActionButton'
 import { Brand } from '@/components/Brand'
@@ -10,7 +13,7 @@ export default function IndexRoute() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="light" />
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Brand light />
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>A PRIVATE PLACE FOR YOUR STORY</Text>
@@ -29,7 +32,7 @@ export default function IndexRoute() {
           <Text style={styles.promiseNumber}>01</Text>
           <Text style={styles.promiseText}>Privacy and access rules belong to the owner.</Text>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   )
 }
@@ -40,7 +43,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.navy,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,

@@ -1,3 +1,6 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: Functional (navigation UI)
+
 import { Link } from 'expo-router'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { AppScreen } from '@/components/AppScreen'
@@ -26,6 +29,7 @@ export default function MoreScreen() {
           <Link href={destination.href} asChild key={destination.title}>
             <Pressable
               accessibilityRole="link"
+              accessibilityLabel={`${destination.title}: ${destination.detail}`}
               style={({ pressed }) => [styles.destination, pressed && styles.pressed]}
             >
               <View style={styles.marker}><Text style={styles.markerText}>{destination.marker}</Text></View>

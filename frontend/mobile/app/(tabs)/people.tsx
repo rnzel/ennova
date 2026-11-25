@@ -1,3 +1,6 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: Scripting (invitation API orchestration)
+
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { AppScreen } from '@/components/AppScreen'
@@ -73,6 +76,7 @@ export default function PeopleScreen() {
         description="Review sample access statuses and trusted people."
       />
       <Pressable
+        accessibilityLabel={showForm ? 'Cancel adding beneficiary' : 'Add beneficiary'}
         accessibilityRole="button"
         accessibilityState={{ expanded: showForm }}
         style={styles.action}
@@ -108,6 +112,7 @@ export default function PeopleScreen() {
             </>
           ) : null}
           <Pressable
+            accessibilityLabel={accessToken ? 'Issue invitation' : 'Add beneficiary to preview'}
             accessibilityRole="button"
             accessibilityState={{ disabled: isIssuing }}
             disabled={isIssuing}

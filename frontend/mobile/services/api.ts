@@ -1,3 +1,6 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: Scripting (typed API boundary)
+
 export type ApiAccount = {
   account_id: string
   username: string
@@ -20,9 +23,6 @@ export type LoginResponse = {
   access_token: string
   token_type: 'Bearer'
 }
-
-// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
-// Paradigm: Scripting (typed API boundary)
 
 export type ApiEntry = {
   entry_id: string

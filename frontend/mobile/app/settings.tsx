@@ -1,3 +1,6 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: Functional (local preference preview)
+
 import { useState } from 'react'
 import { router } from 'expo-router'
 import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native'
@@ -42,6 +45,7 @@ export default function SettingsScreen() {
         />
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel="Save preview settings"
           style={styles.save}
           onPress={() => setSaved(true)}
         >
@@ -76,6 +80,7 @@ export default function SettingsScreen() {
         </Text>
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel="Sign out"
           style={styles.signOut}
           onPress={() => {
             logout()

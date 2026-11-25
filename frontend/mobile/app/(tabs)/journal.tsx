@@ -1,3 +1,6 @@
+// Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back End); Bart Jayson Lola (Q/A); Jallil Sultan (UI/UX Designer); Jezelle Gabion (Documentator)
+// Paradigm: Functional (journal UI)
+
 import { useMemo, useState } from 'react'
 import { Link } from 'expo-router'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
@@ -31,7 +34,11 @@ export default function JournalScreen() {
         description="Your private collection of memories, notes, and letters."
       />
       <Link href="/entries/new" asChild>
-        <Pressable style={styles.newButton}>
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel="Write a new entry"
+          style={styles.newButton}
+        >
           <Text style={styles.newButtonText}>＋  Write a new entry</Text>
         </Pressable>
       </Link>
@@ -47,6 +54,7 @@ export default function JournalScreen() {
         {filters.map((item) => (
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel={`Filter entries: ${item}`}
             accessibilityState={{ selected: filter === item }}
             key={item}
             onPress={() => setFilter(item)}
@@ -64,6 +72,7 @@ export default function JournalScreen() {
           <Text style={styles.statusText}>{entriesError}</Text>
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel="Retry loading entries"
             style={styles.retryButton}
             onPress={() => void refreshEntries()}
           >

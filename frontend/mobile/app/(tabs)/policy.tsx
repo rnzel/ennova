@@ -134,7 +134,8 @@ export default function PolicyScreen() {
           {(['family', 'letter', 'custody'] as const).map((name) => (
             <Pressable
               accessibilityRole="button"
-              accessibilityState={{ selected: templateName === name }}
+              accessibilityLabel={`Policy template: ${name}`}
+              accessibilityState={{ disabled: policyFrozen, selected: templateName === name }}
               disabled={policyFrozen}
               key={name}
               onPress={() => applyTemplate(name)}
@@ -169,7 +170,8 @@ export default function PolicyScreen() {
           {(['tagged', 'mentioning'] as const).map((selector) => (
             <Pressable
               accessibilityRole="button"
-              accessibilityState={{ selected: selectorType === selector }}
+              accessibilityLabel={`Selector type: ${selector}`}
+              accessibilityState={{ disabled: policyFrozen, selected: selectorType === selector }}
               disabled={policyFrozen}
               key={selector}
               onPress={() => setSelectorType(selector)}
@@ -198,7 +200,8 @@ export default function PolicyScreen() {
           {(['none', 'allow', 'deny'] as const).map((mode) => (
             <Pressable
               accessibilityRole="button"
-              accessibilityState={{ selected: seeMode === mode }}
+              accessibilityLabel={`Existence access: ${mode === 'allow' ? 'may see' : mode === 'deny' ? 'may not see' : 'none'}`}
+              accessibilityState={{ disabled: policyFrozen, selected: seeMode === mode }}
               disabled={policyFrozen}
               key={mode}
               onPress={() => setSeeMode(mode)}
@@ -219,7 +222,8 @@ export default function PolicyScreen() {
           ] as const).map(([mode, label]) => (
             <Pressable
               accessibilityRole="button"
-              accessibilityState={{ selected: readMode === mode }}
+              accessibilityLabel={`Read access: ${label}`}
+              accessibilityState={{ disabled: policyFrozen, selected: readMode === mode }}
               disabled={policyFrozen}
               key={mode}
               onPress={() => setReadMode(mode)}
@@ -234,7 +238,8 @@ export default function PolicyScreen() {
           {([true, false] as const).map((enabled) => (
             <Pressable
               accessibilityRole="button"
-              accessibilityState={{ selected: releaseEnabled === enabled }}
+              accessibilityLabel={`${enabled ? 'Include' : 'Exclude'} letter release`}
+              accessibilityState={{ disabled: policyFrozen, selected: releaseEnabled === enabled }}
               disabled={policyFrozen}
               key={String(enabled)}
               onPress={() => setReleaseEnabled(enabled)}
@@ -277,7 +282,8 @@ export default function PolicyScreen() {
           {([true, false] as const).map((enabled) => (
             <Pressable
               accessibilityRole="button"
-              accessibilityState={{ selected: custodyEnabled === enabled }}
+              accessibilityLabel={`${enabled ? 'Include' : 'Exclude'} custody transfer`}
+              accessibilityState={{ disabled: policyFrozen, selected: custodyEnabled === enabled }}
               disabled={policyFrozen}
               key={String(enabled)}
               onPress={() => setCustodyEnabled(enabled)}
@@ -316,7 +322,8 @@ export default function PolicyScreen() {
           {([true, false] as const).map((enabled) => (
             <Pressable
               accessibilityRole="button"
-              accessibilityState={{ selected: trusteeEnabled === enabled }}
+              accessibilityLabel={`${enabled ? 'Include' : 'Exclude'} optional trustee`}
+              accessibilityState={{ disabled: policyFrozen, selected: trusteeEnabled === enabled }}
               disabled={policyFrozen}
               key={String(enabled)}
               onPress={() => setTrusteeEnabled(enabled)}
@@ -345,7 +352,8 @@ export default function PolicyScreen() {
           {(['verbatim', 'light_fix', 'review'] as const).map((mode) => (
             <Pressable
               accessibilityRole="button"
-              accessibilityState={{ selected: writingMode === mode }}
+              accessibilityLabel={`Default writing mode: ${mode}`}
+              accessibilityState={{ disabled: policyFrozen, selected: writingMode === mode }}
               disabled={policyFrozen}
               key={mode}
               onPress={() => setWritingMode(mode)}
@@ -357,6 +365,8 @@ export default function PolicyScreen() {
         </View>
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel="Generate policy text"
+          accessibilityState={{ disabled: policyFrozen }}
           disabled={policyFrozen}
           onPress={generateDraft}
           style={[styles.generateButton, policyFrozen && styles.disabledButton]}
@@ -387,6 +397,7 @@ export default function PolicyScreen() {
         />
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel="Review policy replacement"
           accessibilityState={{ disabled: policyFrozen || isPublishingPolicy }}
           disabled={policyFrozen || isPublishingPolicy}
           style={[styles.saveButton, (policyFrozen || isPublishingPolicy) && styles.disabledButton]}
