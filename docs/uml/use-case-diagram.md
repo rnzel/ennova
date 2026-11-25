@@ -4,8 +4,8 @@ This diagram shows the supported actor interactions at the Flask API boundary an
 
 ```mermaid
 flowchart LR
-    Owner[Owner]
-    Beneficiary[Registered beneficiary / asker]
+    Owner["🧍 Owner"]
+    Beneficiary["🧍 Registered beneficiary / asker"]
     Prolog[SWI-Prolog access engine]
     Model[Local model: Ollama or fake]
 
@@ -48,6 +48,8 @@ flowchart LR
 
     classDef planned stroke-dasharray: 5 5,fill:#fff7e6,color:#654;
     class UCMode planned;
+    classDef actor fill:transparent,stroke:transparent,color:#222;
+    class Owner,Beneficiary actor;
 ```
 
-The `/entries` endpoint supports owner-created diary entries and letters, and the writing-mode classes can derive immutable versions. However, the API does not accept a selected mode or call the mode registry when saving an entry; that owner-facing workflow remains planned. Beneficiary questions pass through Prolog authorization, and the model receives only permitted tool results. Owner Q&A is not implemented and returns the neutral reply. Policy `trustee is` and `transfer custody` statements are parsed into facts, but trustee administration is not an implemented interaction.
+The owner and registered beneficiary use a standing-person symbol as the actor figure, while the system boundary contains ENNOVA use cases. The `/entries` endpoint supports owner-created diary entries and letters, and the writing-mode classes can derive immutable versions. However, the API does not accept a selected mode or call the mode registry when saving an entry; that owner-facing workflow remains planned. Beneficiary questions pass through Prolog authorization, and the model receives only permitted tool results. Owner Q&A is not implemented and returns the neutral reply. Policy `trustee is` and `transfer custody` statements are parsed into facts, but trustee administration is not an implemented interaction.
