@@ -169,4 +169,39 @@ describe('apiRequest', () => {
 
     await expect(apiRequest('/health')).rejects.toBeInstanceOf(ApiError)
   })
+
+  it('maps network failures to a safe connection message', async () => {
+    fetchMock.mockRejectedValue(new Error('Private network detail'))
+
+    await expect(apiRequest('/health')).rejects.toMatchObject({
+      status: 0,
+      code: 'network_error',
+      message: 'Unable to reach the server. Check your connection.',
+    })
+  })
+
+  it('maps an aborted request to a safe timeout message', async () => {
+    jest.useFakeTimers()
+    fetchMock.mockImplementation(
+      (_url: string, options?: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          options?.signal?.addEventListener('abort', () => {
+            reject(Object.assign(new Error('Private timeout detail'), { name: 'AbortError' }))
+          })
+        }),
+    )
+
+    try {
+      const request = apiRequest('/health', { timeoutMs: 100 })
+      const expectedError = expect(request).rejects.toMatchObject({
+        status: 0,
+        code: 'timeout',
+        message: 'The request timed out. Please try again.',
+      })
+      await jest.advanceTimersByTimeAsync(100)
+      await expectedError
+    } finally {
+      jest.useRealTimers()
+    }
+  })
 })
