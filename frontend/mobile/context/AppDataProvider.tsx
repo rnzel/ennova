@@ -48,9 +48,10 @@ type AppData = {
 const AppDataContext = createContext<AppData | null>(null)
 
 export function AppDataProvider({ children }: PropsWithChildren) {
+  const { accessToken, clearRejectedSession } = useAuth()
   const [entries, setEntries] = useState(initialEntries)
   const [beneficiaries, setBeneficiaries] = useState(initialBeneficiaries)
-  const [policy, setPolicy] = useState(initialPolicy)
+  const [policy, setPolicy] = useState(accessToken ? '' : initialPolicy)
   const [pendingReleaseSource, setPendingReleaseSource] = useState<string | null>(null)
   const [pendingReleaseError, setPendingReleaseError] = useState('')
   const [policyConfirmation, setPolicyConfirmation] = useState<PolicyConfirmation | null>(null)
@@ -60,7 +61,9 @@ export function AppDataProvider({ children }: PropsWithChildren) {
   const [isPublishingPolicy, setIsPublishingPolicy] = useState(false)
   const [entriesLoading, setEntriesLoading] = useState(false)
   const [entriesError, setEntriesError] = useState('')
-  const { accessToken, clearRejectedSession } = useAuth()
+  useEffect(() => {
+    setPolicy(accessToken ? '' : initialPolicy)
+  }, [accessToken])
 
   const refreshEntries = async () => {
     if (!accessToken) return

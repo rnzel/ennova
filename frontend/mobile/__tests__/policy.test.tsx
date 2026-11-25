@@ -3,6 +3,7 @@
 
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native'
 import PolicyScreen from '@/app/(tabs)/policy'
+import { initialPolicy } from '@/data/mockData'
 import { PolicyPublishManager } from '@/components/PolicyPublishManager'
 import { AppDataProvider } from '@/context/AppDataProvider'
 import { AuthProvider, useAuth } from '@/context/AuthProvider'
@@ -57,6 +58,47 @@ describe('PolicyScreen', () => {
     )
   })
 
+  it('keeps the sample policy in preview and starts an authenticated owner with a blank source', async () => {
+    const view = await render(
+      <AuthProvider>
+        <AppDataProvider>
+          <AuthCapture />
+          <PolicyScreen />
+          <PolicyPublishManager />
+        </AppDataProvider>
+      </AuthProvider>,
+    )
+
+    expect(view.getByLabelText('Policy source').props.value).toBe(initialPolicy)
+    await act(async () => {
+      if (!authContext) throw new Error('Auth context was not captured')
+      await authContext.login('fictional-owner', 'fictional-password')
+    })
+
+    expect(view.getByLabelText('Policy source').props.value).toBe('')
+    expect(view.getByText(/No active policy source is loaded/)).toBeTruthy()
+    expect(
+      view.getByRole('button', { name: 'Review policy replacement' }).props.accessibilityState.disabled,
+    ).toBe(true)
+  })
+
+  it('rejects an impossible calendar date before generating policy text', async () => {
+    const view = await render(
+      <AuthProvider>
+        <AppDataProvider>
+          <PolicyScreen />
+          <PolicyPublishManager />
+        </AppDataProvider>
+      </AuthProvider>,
+    )
+
+    await fireEvent.changeText(view.getByLabelText('Release date'), '2040-02-30')
+    await fireEvent.press(view.getByRole('button', { name: 'Generate policy text' }))
+
+    expect(view.getByText('Enter a real calendar date in YYYY-MM-DD format.')).toBeTruthy()
+    expect(view.getByLabelText('Policy source').props.value).toBe(initialPolicy)
+  })
+
   it('sanitizes template IDs and confirms the full source before local preview save', async () => {
     const view = await render(
       <AuthProvider>
@@ -97,6 +139,7 @@ describe('PolicyScreen', () => {
       await authContext.login('fictional-owner', 'fictional-password')
     })
 
+    await fireEvent.press(view.getByRole('button', { name: 'Generate policy text' }))
     await fireEvent.press(view.getByRole('button', { name: 'Review policy replacement' }))
     expect(view.getByText(/This replaces the whole active policy/)).toBeTruthy()
     expect(requests.some((request) => request.path === '/policy' && request.method === 'PUT')).toBe(false)

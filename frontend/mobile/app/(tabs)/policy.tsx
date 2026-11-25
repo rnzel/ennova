@@ -8,8 +8,9 @@ import { PageTitle } from '@/components/PageTitle'
 import { Panel } from '@/components/Panel'
 import { PreviewNotice } from '@/components/PreviewNotice'
 import { useAppData } from '@/context/AppDataProvider'
+import { useAuth } from '@/context/AuthProvider'
 import { colors, spacing } from '@/constants/theme'
-import { toPolicyPersonId } from '@/services/policySource'
+import { isValidReleaseDate, toPolicyPersonId } from '@/services/policySource'
 
 type WritingMode = 'verbatim' | 'light_fix' | 'review'
 type SelectorType = 'tagged' | 'mentioning'
@@ -31,6 +32,7 @@ default writing mode: review
 }
 
 export default function PolicyScreen() {
+  const { accessToken } = useAuth()
   const {
     policy,
     requestPolicyConfirmation,
@@ -39,7 +41,9 @@ export default function PolicyScreen() {
     policyPublishOutcome,
     clearPolicyPublishOutcome,
   } = useAppData()
+  const [previousPolicy, setPreviousPolicy] = useState(policy)
   const [draft, setDraft] = useState(policy)
+  const [generationError, setGenerationError] = useState('')
   const [templateName, setTemplateName] = useState<'family' | 'letter' | 'custody'>('family')
   const [protocol, setProtocol] = useState('family')
   const [tag, setTag] = useState('Family')
@@ -58,15 +62,26 @@ export default function PolicyScreen() {
   const [trusteePerson, setTrusteePerson] = useState('marcus')
   const [unavailableDays, setUnavailableDays] = useState('90')
 
+  if (policy !== previousPolicy) {
+    setPreviousPolicy(policy)
+    setDraft(policy)
+  }
+
   const applyTemplate = (name: 'family' | 'letter' | 'custody') => {
     if (policyFrozen) return
     setTemplateName(name)
     setDraft(templateSources[name])
+    setGenerationError('')
     clearPolicyPublishOutcome()
   }
 
   const generateDraft = () => {
     if (policyFrozen) return
+    if (releaseEnabled && !isValidReleaseDate(releaseDate)) {
+      setGenerationError('Enter a real calendar date in YYYY-MM-DD format.')
+      return
+    }
+    setGenerationError('')
     const safeProtocol = toPolicyPersonId(protocol, 'family')
     const safePerson = toPolicyPersonId(person, 'amelia')
     const safeMention = toPolicyPersonId(mentionedName, 'amelia')
@@ -74,7 +89,6 @@ export default function PolicyScreen() {
     const safeTrusteePerson = toPolicyPersonId(trusteePerson, 'marcus')
     const jsonTag = JSON.stringify(tag.trim() || 'Family')
     const jsonTitle = JSON.stringify(letterTitle.trim() || 'A letter for another day')
-    const date = /^\d{4}-\d{2}-\d{2}$/.test(releaseDate) ? releaseDate : '2040-05-01'
     const days = /^\d+$/.test(unavailableDays) ? unavailableDays : '90'
     const selector =
       selectorType === 'tagged'
@@ -88,7 +102,7 @@ export default function PolicyScreen() {
     if (readMode === 'deny_summary') lines.push(`    may not read summary of ${selector}`)
     if (readMode === 'deny_verbatim') lines.push(`    may not read verbatim of ${selector}`)
     if (releaseEnabled) {
-      lines.push(`release letter ${jsonTitle} to ${safePerson} when date >= ${date}`)
+      lines.push(`release letter ${jsonTitle} to ${safePerson} when date >= ${releaseDate}`)
     }
     if (custodyEnabled) {
       lines.push(`transfer custody to ${safeCustodyPerson} if trustee unavailable for ${days} days`)
@@ -101,7 +115,7 @@ export default function PolicyScreen() {
   }
 
   const saveDraft = () => {
-    if (policyFrozen || isPublishingPolicy) return
+    if (policyFrozen || isPublishingPolicy || !draft.trim()) return
     requestPolicyConfirmation(draft, 'policy')
   }
 
@@ -116,10 +130,16 @@ export default function PolicyScreen() {
       <PageTitle
         eyebrow="ACCESS CONTROL"
         title="Your access policy"
-        description="Review a sample policy written in ENNOVA's policy language."
+        description={
+          accessToken
+            ? 'Build a complete policy source in ENNOVA policy language.'
+            : 'Preview a sample policy written in ENNOVA policy language.'
+        }
       />
       <PreviewNotice>
-        Policy text is sent to the backend parser. The frontend does not create Prolog facts.
+        {accessToken
+          ? 'No active policy source is loaded because the app cannot read it. Publishing replaces the whole policy. Policy text is sent to the backend parser; the frontend does not create Prolog facts.'
+          : 'This sample policy is preview-only. Policy text is sent to the backend parser when an owner publishes; the frontend does not create Prolog facts.'}
       </PreviewNotice>
       {policyFrozen ? (
         <View style={styles.frozenNotice} accessibilityRole="alert">
@@ -272,11 +292,19 @@ export default function PolicyScreen() {
           accessibilityLabel="Release date"
           autoCapitalize="none"
           editable={!policyFrozen}
-          onChangeText={setReleaseDate}
+          onChangeText={(value) => {
+            setReleaseDate(value)
+            setGenerationError('')
+          }}
           placeholder="2040-05-01"
           style={styles.fieldInput}
           value={releaseDate}
         />
+        {generationError ? (
+          <Text accessibilityRole="alert" style={styles.errorText}>
+            {generationError}
+          </Text>
+        ) : null}
         <Text style={styles.fieldLabel}>Custody transfer</Text>
         <View style={styles.templateRow}>
           {([true, false] as const).map((enabled) => (
@@ -381,6 +409,11 @@ export default function PolicyScreen() {
       <Panel>
         <Text style={styles.sectionLabel}>POLICY SOURCE</Text>
         <Text style={styles.panelTitle}>Policy draft</Text>
+        {!draft.trim() ? (
+          <Text style={styles.previewText}>
+            Generate policy text or enter a policy-language source before reviewing a replacement.
+          </Text>
+        ) : null}
         <TextInput
           accessibilityLabel="Policy source"
           autoCapitalize="none"
@@ -398,9 +431,9 @@ export default function PolicyScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Review policy replacement"
-          accessibilityState={{ disabled: policyFrozen || isPublishingPolicy }}
-          disabled={policyFrozen || isPublishingPolicy}
-          style={[styles.saveButton, (policyFrozen || isPublishingPolicy) && styles.disabledButton]}
+          accessibilityState={{ disabled: policyFrozen || isPublishingPolicy || !draft.trim() }}
+          disabled={policyFrozen || isPublishingPolicy || !draft.trim()}
+          style={[styles.saveButton, (policyFrozen || isPublishingPolicy || !draft.trim()) && styles.disabledButton]}
           onPress={saveDraft}
         >
           <Text style={styles.saveText}>Review policy replacement</Text>

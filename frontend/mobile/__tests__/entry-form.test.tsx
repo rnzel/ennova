@@ -187,7 +187,7 @@ describe('NewEntryScreen', () => {
       expect(view.getByText('Confirm policy replacement')).toBeTruthy()
     })
     expect(view.getByText(/This replaces the whole active policy/)).toBeTruthy()
-    expect(view.getByText(/protocol family:/)).toBeTruthy()
+    expect(view.queryByText(/protocol family:/)).toBeNull()
     expect(view.getByText(/release letter "Fictional wishes" to sample_person when date >= 2040-05-01/)).toBeTruthy()
     expect(requests.filter((request) => request.path === '/entries' && request.method === 'POST')).toHaveLength(1)
     expect(requests.some((request) => request.path === '/policy')).toBe(false)

@@ -57,19 +57,21 @@ Depends on F11b; backend F1, F2, F3, F6a.
 - **Open issues:** The backend list route returns entry metadata only, with no entry detail/content route or writing-mode/derived-summary fields. The UI explicitly shows metadata and unavailable content; it does not invent those values. Entry save is followed by best-effort summarization on the backend, so derived content may be missing; the UI must tolerate that.
 - **Verified by:** pending
 
-### F11d – Policy builder `[x]`
+### F11d – Policy builder `[~]`
 Depends on F11b; backend F4 (policy language), F5 (Prolog access), F9a.
 - [x] Templates for common policies
 - [x] Plain-language preview of the policy
 - [x] Advanced editor for policy text
 - [x] Builder generates policy text and sends it through `PUT /policy`; the front end never generates Prolog facts
+- [x] Authenticated owners start with an empty source because there is no policy GET route; `initialPolicy` is shown only in signed-out preview
+- [x] Reject invalid calendar dates before generating a release statement and prevent review of an empty source
 - [x] Show `PolicySyntaxError` line and column as a readable message
 - [x] Handle `policy_frozen` by disabling edits
 - [x] Builder covers tagged/mentioning selectors, may-see/deny, may-read/deny levels, release, custody, trustee, and default writing mode
 - **Paradigm:** Language design (UI feeds the policy language)
-- **Files changed:** `frontend/mobile/app/(tabs)/policy.tsx`, `frontend/mobile/services/api.ts`
-- **Tests:** pending (builder output should be checked against the backend parser)
-- **Open issues:** Parser-facing valid/invalid UI tests remain pending framework approval.
+- **Files changed:** `frontend/mobile/app/(tabs)/policy.tsx`, `frontend/mobile/context/AppDataProvider.tsx`, `frontend/mobile/__tests__/policy.test.tsx`
+- **Tests:** `npm test` (9 suites, 38 tests), lint, and typecheck pass. Ten valid generated/template/test sources parsed with the backend parser; the intentionally malformed preserved-source fixture was rejected as expected.
+- **Open issues:** End-to-end verification against a running backend remains pending.
 - **Verified by:** lint/typecheck pending teammate review
 
 ### F11e – Beneficiaries and invitations `[~]`
