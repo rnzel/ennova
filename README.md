@@ -37,6 +37,25 @@ ENNOVA is a personal AI diary and digital legacy app that keeps owner-written en
 
 Use fictional data only. Never put a real person's diary or personal details in this project.
 
+## Frontend setup
+The native mobile app is in `frontend/mobile/` and uses Expo + React Native.
+Install Node.js (npm is included), then from the project root:
+
+1. `cd frontend/mobile`
+2. `npm install`
+3. `npm start`
+4. Scan the QR code with Expo Go, or press `a` to open an available Android emulator.
+5. Run `npm run typecheck` to check the TypeScript project.
+
+A native iOS build requires macOS and Xcode.
+
+The current native app is a UI skeleton: sign-in is simulated, and diary,
+beneficiary, policy, and Q&A data remain local sample content. No backend or AI
+service is connected, and the frontend does not enforce authorization. Use
+fictional data only. The logo is bundled at
+`frontend/mobile/assets/images/ennova-logo.jpg`; its palette uses deep navy,
+teal, and pale cyan.
+
 ### Persistent account database
 
 Owner accounts, beneficiary accounts, and invitations use the configured MySQL database. The `accounts` table stores normalized username/email, role, owner/person IDs, a password hash, and creation time. The `invitations` table stores only the invitation hash, owner/person IDs, expiry, and used state. Unique database constraints protect usernames, emails, and owner/person pairs. Beneficiary insertion and invitation use are committed in one transaction.
@@ -48,6 +67,10 @@ The local `.env` is loaded by the app configuration and is ignored by Git. Missi
 ## Repository layout
 | Path | Contents |
 |---|---|
+| `frontend/mobile/` | Expo + React Native mobile application |
+| `frontend/mobile/app/` | Mobile routes and tab navigation |
+| `frontend/mobile/components/` | Reusable native UI components |
+| `frontend/mobile/data/` | Fictional frontend prototype data |
 | `backend/app/` | Backend source code (domain, services, routes, AI) |
 | `backend/app/policy/` | Policy language and the Prolog rules in `access_rules.pl` |
 | `backend/scripts/` | Demo script |
@@ -56,7 +79,7 @@ The local `.env` is loaded by the app configuration and is ignored by Git. Missi
 | `docs/uml/` | UML diagrams based on the implemented backend and finalized requirements |
 | `docs/` | Design notes, access test table, AI-use log |
 | `docs/reports/` | Design report and presentation material |
-| `.github/` | Copilot instructions |
+| `.github/` | Repository Copilot instructions and path-specific instructions in `.github/instructions/` |
 | `PROGRESS.md` | Feature tracker and weekly log |
 
 ## Notes
