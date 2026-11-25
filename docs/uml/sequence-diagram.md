@@ -28,7 +28,7 @@ sequenceDiagram
     Mode-->>API: immutable DerivedVersion linked to source digest
     API->>Store: append(version, sequence_number)
     Store-->>API: StoredDerivedVersion
-    API-->>UI: Original remains saved; return derived version for comparison
+    API-->>UI: Original remains saved and derived version is available for comparison
 ```
 
 `WritingMode`, `Verbatim`, `LightFix`, `Review`, `DerivedVersion`, and `InMemoryDerivedVersionStore` are implemented and tested as domain components. The UI participant, mode-bearing request, and route wiring in this diagram are planned; this is not the current runtime sequence.
@@ -104,9 +104,9 @@ sequenceDiagram
             API->>QA: answer(question, fixed person_id, policy, facts, today)
             QA->>QA: Parse policy and build per-entry, per-level requests
             QA->>Diary: list_entries(owner_id) to enumerate candidate records
-            Note over QA,Diary: This implementation enumerates owner-scoped records before Prolog; it does not send entry text to the model at this step.
+            Note over QA,Diary: This implementation enumerates owner-scoped records before Prolog. It does not send entry text to the model at this step.
             QA->>Prolog: evaluate_many(policy, facts, access and letter requests)
-            Prolog-->>QA: allow/deny per level; letter statuses
+            Prolog-->>QA: allow or deny per level and letter statuses
             QA->>QA: Resolve highest allowed level per entry
             alt No permitted entries
                 QA-->>API: Neutral reply (model is not called)
@@ -140,7 +140,7 @@ sequenceDiagram
     end
 
     Note over QA,Model: Entries with deny/no permission are skipped during integrity verification and are never returned by tools or included in model prompts/results.
-    Note over API,Model: Prolog, parsing, or model failures follow fail-closed handling; model failures become a typed unavailable response.
+    Note over API,Model: Prolog, parsing, or model failures follow fail-closed handling. Model failures become a typed unavailable response.
 ```
 
 The service currently calls `list_entries` to form requests before asking Prolog. The authorization boundary is applied before entry verification for retrieval tools and before any content is supplied to the model. Tests assert that denied entry contents do not reach model prompts or tool results. This ordering is a notable difference from a literal “authorize before any repository retrieval” interpretation of the proposal.
@@ -160,5 +160,5 @@ sequenceDiagram
     QA->>QA: Map all entries to no permission
     QA-->>Caller: Neutral reply without calling model
 
-    Note over QA,Caller: If some entries are permitted but tools find no relevant records, the service returns the same neutral reply. Prolog or model failure also cannot grant access; Prolog failures deny and model failures use the supported typed unavailable path.
+    Note over QA,Caller: If some entries are permitted but tools find no relevant records, the service returns the same neutral reply. Prolog or model failure cannot grant access. Prolog failures deny and model failures use the supported typed unavailable path.
 ```

@@ -53,6 +53,7 @@ The local `.env` is loaded by the app configuration and is ignored by Git. Missi
 | `backend/scripts/` | Demo script |
 | `backend/tests/` | Automated tests |
 | `docs/grammar/` | EBNF grammar and sample policy programs |
+| `docs/uml/` | UML diagrams based on the implemented backend and finalized requirements |
 | `docs/` | Design notes, access test table, AI-use log |
 | `docs/reports/` | Design report and presentation material |
 | `.github/` | Copilot instructions |
@@ -72,6 +73,12 @@ The local `.env` is loaded by the app configuration and is ignored by Git. Missi
 - F10 (Letter of Wishes) is incomplete.
 
 See [docs/api-and-configuration.md](docs/api-and-configuration.md) for the REST endpoints and environment variables.
+
+## UML diagrams
+
+- [Use case diagram](docs/uml/use-case-diagram.md)
+- [Sequence diagrams](docs/uml/sequence-diagram.md)
+- [Class diagram](docs/uml/class-diagram.md)
 
 ## Branching
 - `master` always works and passes all tests. Never commit directly to `master`.
