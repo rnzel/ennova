@@ -2,6 +2,23 @@ Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back E
 
 Historical note: Gemini was later removed; the current provider selection is Ollama or fake only (`backend/app/ai/provider.py`).
 
+## Contribution instructions
+
+Each team member who uses AI for significant project work should add a dated row to the log. Keep the existing columns and record a concise prompt summary, a summary of the AI response or generated work, what the team accepted, changed, or rejected, and the name of the person who actually verified the work. Do not use the author as verifier unless that person performed the verification. If verification has not happened, leave `review pending` in the verifier column; do not infer or fill in a name.
+
+These 10 entries still have `review pending` as their verifier and need human verification:
+
+- 2026-11-17 — F3 – Writing modes
+- 2026-11-17 — F6 – Accounts and registration
+- 2026-11-17 — F9a – REST API
+- 2026-11-17 — F9a – API security review fixes
+- 2026-11-20 — Standalone setup check
+- 2026-11-20 — Standalone setup check verification
+- 2026-11-20 — Grounded-QA live Ollama fix
+- 2026-11-20 — Genuine Ollama family Q&A
+- 2026-11-21 — Generic grounded-QA cleanup
+- 2026-11-21 — Letter of Wishes disclaimer
+
 date | feature | prompt summary | what was generated | changed or rejected | verified by
 2026-11-12 | F0 – Project foundation | Bootstrapped the backend foundation, config, env placeholders, migration setup, and health endpoint | Flask app factory, backend config, `.env.example`, `requirements.txt`, migration scaffold, health route, and F0 smoke tests | No major rejections; DB connectivity check remains conditional on MySQL env values, and no secrets were added | Bart Jayson Lola (Q/A)
 2026-11-12 | F1 – Diary model | Implemented the pure-Python OOP diary domain model and its focused tests | Owner, Beneficiary, Protocol, Grant, Entry subclasses, append-only Vault, and model tests | Kept authorization decisions and policy-freeze behavior out of the model for their planned Prolog/policy features | Bart Jayson Lola (Q/A)
