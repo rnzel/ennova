@@ -49,10 +49,11 @@ Install Node.js (npm is included), then from the project root:
 
 A native iOS build requires macOS and Xcode.
 
-The current native app is a UI skeleton: sign-in is simulated, and diary,
-beneficiary, policy, and Q&A data remain local sample content. No backend or AI
-service is connected, and the frontend does not enforce authorization. Use
-fictional data only. The logo is bundled at
+The native app uses the backend for owner registration/sign-in, diary entry
+creation, policy submission, beneficiary invitations, beneficiary Q&A, and the
+owner's grounded diary chatbot. Some unfinished screens still use local preview
+data; the backend remains authoritative for access. Use fictional data only.
+The logo is bundled at
 `frontend/mobile/assets/images/ennova-logo.jpg`; its palette uses deep navy,
 teal, and pale cyan.
 
@@ -90,9 +91,10 @@ The local `.env` is loaded by the app configuration and is ignored by Git. Missi
 
 ## Known limitations
 - Entries, policies, and audit state are in memory; account and invitation records are persisted in MySQL.
+- Owner chatbot conversation questions are held in bounded, owner-bound process memory and are lost on restart; diary entries themselves are also in memory.
 - Flask-Limiter uses in-memory rate-limit storage, so limits are per-process and are not suitable for production or multiple workers.
 - No CI/CD, Docker, or deployment files are present.
-- There is no mobile app.
+- The Expo mobile client is a prototype and has not received full real-device or accessibility certification.
 - F10 (Letter of Wishes) is incomplete.
 
 See [docs/api-and-configuration.md](docs/api-and-configuration.md) for the REST endpoints and environment variables.

@@ -16,6 +16,36 @@ All endpoints are defined by the Flask routes in `backend/app/routes/`, except `
 | PUT | `/policy` | Parse and activate policy text | Owner bearer token |
 | POST | `/death-trigger` | Trigger the death state and freeze policy | Owner bearer token |
 | POST | `/ask` | Ask a grounded question | Any bearer token |
+| POST | `/owner/ask` | Ask a grounded question about the authenticated owner's diary | Owner bearer token |
+
+### Owner AI Chatbot
+
+`POST /owner/ask` accepts a natural-language question. The backend derives the owner identity from the validated bearer token; clients must not supply an owner ID. A server-issued `conversation_id` may be sent for a follow-up. The server keeps only recent user questions as context, bound to that owner; assistant messages are never accepted from the client as evidence.
+
+Request:
+
+```json
+{
+  "question": "What did I write about my first day at university?"
+}
+```
+
+On follow-up requests, include the `conversation_id` returned for this conversation. The following illustrative response shows the shape; the answer and entry are fictional:
+
+```json
+{
+  "answer": "You recorded that your first day felt exciting.",
+  "no_record": false,
+  "conversation_id": "32-character-server-issued-id",
+  "citations": [{ "entry_id": "entry-1", "date": "2040-04-30" }]
+}
+```
+
+When retrieval finds no supporting entry, the endpoint returns HTTP 200 with `no_record: true`, the fixed no-support answer, and an empty citations array. Citation IDs returned by the model are filtered against the exact entries supplied to it, and citation dates come from stored entry timestamps. Requests are limited to 2,000 characters and 20 per minute per account. The endpoint returns safe 401/403 responses for missing/invalid authentication and non-owner accounts, 400 for invalid input or a conversation that is missing, expired, or belongs to another owner, and 503 when the model is unavailable.
+
+Conversation context is process-local: it keeps at most four prior questions per conversation, expires after 30 minutes of inactivity, and is lost when the backend process restarts. Diary entries are also held by the current in-memory entry repository and are not durable across restarts. Owner retrieval uses local lexical ranking, metadata and date cues with a small synonym expansion; it does not use embeddings or an external vector database. A broad paraphrase may therefore miss an entry.
+
+Beneficiary `POST /ask` remains a separate workflow. It resolves the owner's policy through Prolog before permitted record views reach its model context; the owner endpoint does not modify that authorization path.
 
 Letter responses include a `disclaimer` field:
 `Letters of Wishes in ENNOVA are personal messages and are not legal wills or substitutes for legally executed estate documents. ENNOVA does not provide legal advice.`

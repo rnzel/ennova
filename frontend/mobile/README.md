@@ -37,7 +37,11 @@ declaring a frontend feature ready.
 
 Copy `.env.example` to `.env.local` and set `EXPO_PUBLIC_API_BASE_URL` to the
 running ENNOVA backend URL. The owner login and registration screens use the
-backend `/auth/login` and `/auth/register-owner` routes.
+backend `/auth/login` and `/auth/register-owner` routes. The Assistant screen
+posts owner questions to `POST /owner/ask`; the backend returns grounded answers
+and verified entry citations. Conversation messages remain in the active screen
+session, and follow-up context is temporary server memory rather than persisted
+chat history.
 
 JWT access tokens are currently held only in React memory. They are cleared when
 the app restarts or the user signs out, and this session is not persistent.

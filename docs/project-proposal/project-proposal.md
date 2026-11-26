@@ -54,8 +54,18 @@ A person with no protocol, or who never registered, is treated the same as no ac
 | Item | Current state | Decision needed |
 |---|---|---|
 | Durable storage in MySQL | All data is held in memory behind repository interfaces and is lost on restart | Build it, or document in-memory storage as the prototype's limit |
-| Owner asking about their own diary | Returns the neutral reply until a Prolog `owner/1` rule exists | Build it, or move it to out of scope |
+| Owner AI Chatbot | Implemented as a separate owner-authenticated workflow; beneficiary `/ask` remains separate | Project owner confirmed instructor approval for implementation |
 | Mobile interface (Expo React Native) | A screen exists; it is a listed extra | Instructor approval before it counts as part of the project |
+
+### 3.3 Approved additional feature: Owner AI Chatbot
+
+The project owner confirmed instructor approval for implementation. The repository does not record an instructor name or approval date, so neither is inferred here.
+
+**Paradigm:** Scripting for grounded AI Q&A, reusing the existing object-oriented diary services and functional entry processing.
+
+**Purpose and scope:** Let an authenticated owner ask natural-language questions about that owner's own diary records and reflect on what they recorded. This is separate from beneficiary Q&A: the owner workflow identifies the owner from the authenticated server-side account, retrieves only that owner's records, and does not apply beneficiary release policies to the owner. It reuses the existing model-provider abstraction, grounded response and citation handling, and returns citations with dates from retrieved entries. If retrieved records do not support an answer, it says that the diary contains no supporting information. Recorded facts are distinguished from AI-generated interpretation. The chatbot is read-only and cannot create, edit, or delete entries, or change policy.
+
+**Intended behavior:** Require owner authentication; isolate retrieval to the authenticated owner's identity; answer in a conversational interface grounded in retrieved diary content; validate citations against records used to answer; fail safely on missing evidence or model errors. Follow-up context is held in bounded, owner-bound process memory and is not persisted. Beneficiary Q&A remains a separate Prolog-authorized workflow that sends only policy-permitted material to its model context. The owner chatbot does not grant access to beneficiary workflows or weaken their Prolog checks.
 
 ---
 
@@ -71,7 +81,7 @@ Philippine law sets formal requirements for wills. This project does not meet th
 - Automatic detection of death. Inactivity never releases anything. The death trigger is a deliberate confirmation by the owner and is a demo-level simplification, not proof of death.
 - Operating custody transfer or a trustee workflow. The statements parse and compile to Prolog facts only.
 - Password reset, email verification, refresh tokens, device trust, and recovery codes.
-- Extras, unless the instructor approves them first: inactivity check-in, biometric lock, document vault, Markdown export, semantic search.
+- Other extras, unless reported to and approved by the instructor first: inactivity check-in, biometric lock, document vault, Markdown export, semantic search.
 - Hosted model providers. A Gemini client was built and then removed.
 - Real personal data of any kind.
 

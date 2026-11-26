@@ -10,7 +10,7 @@ import { PreviewNotice } from '@/components/PreviewNotice'
 import { colors } from '@/constants/theme'
 
 const destinations = [
-  { title: 'Ask ENNOVA', detail: 'Preview the grounded Q&A experience.', href: '/assistant', marker: '✳' },
+  { title: 'Ask about your diary', detail: 'Chat with grounded answers from your own entries.', href: '/assistant', marker: '✳' },
   { title: 'Settings', detail: 'Profile, privacy, and writing preferences.', href: '/settings', marker: '⚙' },
   { title: 'Beneficiary preview', detail: 'See the read-only sample beneficiary view.', href: '/beneficiary', marker: '↗' },
 ] as const
