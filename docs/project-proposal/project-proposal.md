@@ -34,7 +34,7 @@ The aim is not the AI. It is to show that the right programming paradigm was cho
 | Owner | The diary's author. Registers with a username and password. | Write diary entries and letters. Submit and replace the policy while it is not frozen. Invite beneficiaries. Confirm the death trigger. |
 | Registered asker (beneficiary) | A person the owner invited. Registers by redeeming an invitation code. Prolog sees only the person identifier on the invitation, for example `maria`. | Ask questions. See only what the policy allows, and only after the death trigger. Read a letter addressed to them after its release date. |
 | Trustee | A person named in the policy with `trustee is <person>`. | Nothing by being a trustee. A trustee has no reading rights unless the policy also grants them. Custody statements compile to facts but do not act (see section 4). |
-| Language model (system actor) | A local Ollama model, behind a replaceable interface. | Reads only the permitted material it is given. Never touches the database. |
+| Language model (system actor) | A Groq model behind a replaceable interface. | Reads only the permitted material it is given. Never touches the database. |
 | SWI-Prolog (system actor) | The access engine. | Makes every access decision. |
 
 A person with no protocol, or who never registered, is treated the same as no access at all.
@@ -46,7 +46,7 @@ A person with no protocol, or who never registered, is treated the same as no ac
 ### 3.1 In scope
 - The six required components (section 5), implemented in Python and SWI-Prolog.
 - A REST API (Flask) that connects them, with accounts, invitations, entries, policy submission, the death trigger, and a question endpoint.
-- A local language model (Ollama) behind a `ModelClient` interface, plus a deterministic fake model for tests and scripted demos.
+- A hosted Groq language model behind a `ModelClient` interface, plus a deterministic fake model for tests and scripted demos.
 - A command-line demo of the Maria scenario, a setup check, and an automated test suite.
 - The `Letter of Wishes` as a personal message, with the disclaimer in section 4.
 
@@ -87,7 +87,7 @@ Philippine law sets formal requirements for wills. This project does not meet th
 
 ### 4.3 Assumptions
 1. The prototype runs as one server process. In-memory repositories and rate-limit counters are not shared across processes.
-2. SWI-Prolog is installed and reachable, and Ollama is installed for live model runs. Every member can run the setup check.
+2. SWI-Prolog is installed and reachable. Every member can run the setup check.
 3. "Today" for policy dates comes from the server clock in the configured time zone (`APP_TIMEZONE`, default UTC). Dates are calendar dates.
 4. Policy person identifiers are lowercase (`[a-z][a-z0-9_]*`) and are not reserved words.
 5. A small local model on a CPU-only laptop is slow and unreliable with tool calls. Backend code keeps authorization, citations, and neutral replies, so the model cannot change them.
@@ -143,7 +143,7 @@ Status: **Done** means implemented and covered by the test file named. **Pending
 ### 5.6 Grounded AI Q&A (scripting)
 The AI has three parts, documented separately in `docs/ai-design-note.md`.
 
-**Model.** A local model served by Ollama, selected by `LLM_PROVIDER` (`ollama` or `fake`). An unset or invalid value fails closed.
+**Model.** A model selected by `LLM_PROVIDER` (`groq` or `fake`). An unset or invalid value fails closed.
 
 **Tools.** `search_entries`, `get_entry`, `count_mentions`, and `get_letter`. Each runs the permission check inside itself. The asker is fixed by the service, so the model cannot ask on behalf of someone else. The model never reads the vault directly.
 
@@ -157,7 +157,7 @@ The AI has three parts, documented separately in `docs/ai-design-note.md`.
 | FR-QA4 | With existence access, the asker shall be told whether entries mention them and how many, without their content. | `test_grounded_qa.py` | Done with the fake model. **Pending** with the live local model |
 | FR-QA5 | A summary-level asker shall receive a stored derived summary and never the original text. An entry without a stored summary shall be left out. | `test_grounded_qa.py`, `test_model_summaries.py` | Done |
 | FR-QA6 | A letter request before the release date shall be refused with the date message, only for a letter the asker has their own release rule for. On or after the date, the letter shall be shown verbatim. | `test_grounded_qa.py`, `test_demo_maria.py` | Done |
-| FR-QA7 | The model's output shall be validated. A malformed, empty, or uncited answer shall fall back to the neutral reply. A model failure shall return the fixed unavailable message. | `test_ollama.py`, `test_grounded_qa.py` | Done |
+| FR-QA7 | The model's output shall be validated. A malformed, empty, or uncited answer shall fall back to the neutral reply. A model failure shall return the fixed unavailable message. | `test_groq.py`, `test_grounded_qa.py` | Done |
 | FR-QA8 | Entry text shall be handled as untrusted data. A hostile entry shall not change behavior. | `test_grounded_qa.py` | Done |
 
 ### 5.7 Accounts and API (supporting)
@@ -189,7 +189,7 @@ The AI has three parts, documented separately in `docs/ai-design-note.md`.
 | ID | Requirement | Verified by | Status |
 |---|---|---|---|
 | NFR-S1 | Deny by default everywhere. Any error, timeout, or malformed output shall resolve to the safe action. | `test_prolog_access.py`, `test_errors.py` | Done |
-| NFR-S2 | Passwords shall be hashed. Invitation codes shall be stored hashed. Secrets shall come from environment variables and never be committed. | `test_accounts.py`, `test_gemini`-style canary tests in `test_ollama.py` | Done |
+| NFR-S2 | Passwords shall be hashed. Invitation codes shall be stored hashed. Secrets shall come from environment variables and never be committed. | `test_accounts.py`, provider canary tests in `test_groq.py` | Done |
 | NFR-S3 | Login, registration, the death trigger, and the question endpoint shall be rate limited, with an escalating delay after failed logins. | `test_api_security.py` | Done |
 | NFR-S4 | Request size, entry length, and question length shall be bounded. | `test_api.py` | Done |
 | NFR-S5 | Responses shall carry no stack traces, paths, credentials, or entry text in errors. | `test_api_security.py` | Done |
@@ -199,7 +199,7 @@ The AI has three parts, documented separately in `docs/ai-design-note.md`.
 |---|---|---|---|
 | NFR-P1 | Only fictional data shall be used in code, tests, demos, and documents. | review | Ongoing |
 | NFR-P2 | Diary text shall not leave the machine. The model runs locally. | design | Done |
-| NFR-P3 | Logs shall hold only an exception class and a code, never prompts, responses, entry text, or secrets. | `test_ollama.py`, `test_api_security.py` | Done |
+| NFR-P3 | Logs shall hold only an exception class and a code, never prompts, responses, entry text, or secrets. | `test_groq.py`, `test_api_security.py` | Done |
 
 ### 6.3 Honesty of the AI
 | ID | Requirement | Verified by | Status |
@@ -212,7 +212,7 @@ The AI has three parts, documented separately in `docs/ai-design-note.md`.
 ### 6.4 Reliability and quality
 | ID | Requirement | Verified by | Status |
 |---|---|---|---|
-| NFR-R1 | A failure of the model, Prolog, or a timeout shall return a defined fallback and never expose restricted content. | `test_ollama.py`, `test_prolog_access.py` | Done |
+| NFR-R1 | A failure of the model, Prolog, or a timeout shall return a defined fallback and never expose restricted content. | `test_groq.py`, `test_prolog_access.py` | Done |
 | NFR-R2 | The default test suite shall run offline with no key and no model, and the Prolog tests shall fail, not skip, when SWI-Prolog is missing. | full suite | Done |
 | NFR-R3 | Time shall be injected so tests are deterministic. | `test_accounts.py`, `test_api.py` | Done |
 | NFR-R4 | Every member shall be able to set up and run the project from the README and the setup check. | `test_check_setup.py` | In progress |

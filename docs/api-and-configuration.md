@@ -73,20 +73,10 @@ Defaults below are the application's defaults in `backend/app/config.py`, unless
 | `DATABASE_URL` | SQLAlchemy database URL | `sqlite:///ennova.db` | No; set to use MySQL |
 | `AIVEN_CA_PATH` | Aiven MySQL CA certificate path | Empty | Required for CA-verified Aiven TLS |
 | `SWIPL_EXECUTABLE` | SWI-Prolog executable or path | `swipl` | Required to evaluate Prolog access rules |
-| `LLM_PROVIDER` | Select `groq`, `ollama`, or `fake` | None | Required to select an AI provider |
+| `LLM_PROVIDER` | Select `groq` or `fake` | None | Required to select an AI provider |
 | `GROQ_API_KEY` | Backend-only Groq API key | None | Required when `LLM_PROVIDER=groq` |
 | `GROQ_MODEL` | Groq inference model ID | `openai/gpt-oss-120b` | No |
 | `GROQ_QUESTION_TIMEOUT_SECONDS` | Total Groq question deadline | `45` | No |
-| `OLLAMA_HOST` | Ollama server host | `http://localhost:11434` | No |
-| `OLLAMA_MODEL` | Ollama model name | None | Required when `LLM_PROVIDER=ollama` |
-| `OLLAMA_ALLOW_REMOTE` | Opt in to a non-loopback Ollama host | `0` | No |
-| `OLLAMA_NUM_CTX` | Ollama context size | `8192` | No |
-| `OLLAMA_MAX_OUTPUT_TOKENS` | Maximum Ollama output tokens | `512` | No |
-| `OLLAMA_REQUEST_TIMEOUT_SECONDS` | Per-request timeout | `30` | No |
-| `OLLAMA_QUESTION_TIMEOUT_SECONDS` | Overall question deadline | `45` | No |
-| `OLLAMA_CONNECT_TIMEOUT_SECONDS` | Connection timeout | `15` | No |
-| `OLLAMA_READ_TIMEOUT_SECONDS` | Response read timeout | `30` | No |
-| `OLLAMA_MAX_RESPONSE_BYTES` | Maximum Ollama response size | `1048576` | No |
 | `RUN_LIVE_AI_TESTS` | Enable live-provider tests when set to `1` | `0` in `.env.example` | No |
 
-`FLASK_ENV` is present in `.env.example` but is not read by the Python configuration. Groq and Ollama configuration are provider-specific. Select `LLM_PROVIDER=groq` with a server-side key, `LLM_PROVIDER=ollama` with the Ollama settings, or `LLM_PROVIDER=fake` for deterministic tests/demos. No provider silently falls back to another. Groq is a hosted service: diary evidence included in prompts is transmitted to Groq. Keep keys out of source control and the mobile client. Availability and quotas depend on the model and Groq organization plan; check the current organization Limits page rather than assuming a free-tier allowance.
+`FLASK_ENV` is present in `.env.example` but is not read by the Python configuration. Groq configuration is provider-specific. Select `LLM_PROVIDER=groq` with a server-side key or `LLM_PROVIDER=fake` for deterministic tests/demos. No provider silently falls back to another. Groq is a hosted service: diary evidence included in prompts is transmitted to Groq. Keep keys out of source control and the mobile client. Availability and quotas depend on the model and Groq organization plan; check the current organization Limits page rather than assuming a free-tier allowance.

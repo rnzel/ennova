@@ -97,7 +97,7 @@ Depends on F11b; backend F7, F7a, F7c–F7e, F8, F9a.
 - **Paradigm:** n/a (interface)
 - **Files changed:** `frontend/mobile/app/assistant.tsx`, `frontend/mobile/services/api.ts`
 - **Tests:** pending (cover the six Maria scenarios at UI level once the API is wired)
-- **Open issues:** Backend owner `/ask` returns the neutral reply until Prolog exposes an `owner/1` fact. Live Ollama calls can time out on small CPU-only models, so UI timeouts matter. Current assistant screen is a simulated local form.
+- **Open issues:** Backend owner `/ask` returns the neutral reply until Prolog exposes an `owner/1` fact. Groq calls use hosted inference, so UI timeouts matter. Current assistant screen is a simulated local form.
 - **Verified by:** pending
 
 ### F10 – Letter of Wishes (front end) `[~]`

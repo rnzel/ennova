@@ -87,7 +87,7 @@ sequenceDiagram
     participant Conversations as OwnerConversationStore
     participant Diary as DiaryService / EntryRepository
     participant Search as Owner entry retrieval
-    participant Model as ModelClient (Ollama or fake)
+    participant Model as ModelClient (Groq or fake)
     participant Citations as Citation validation
 
     Owner->>UI: Enter natural-language question
@@ -139,7 +139,7 @@ sequenceDiagram
     participant Diary as DiaryService / EntryRepository
     participant Prolog as PrologAccessBridge
     participant Tools as Permission-filtered tools
-    participant Model as ModelClient (Ollama or fake)
+    participant Model as ModelClient (Groq or fake)
 
     Beneficiary->>API: POST /ask (Bearer token, question)
     API->>Auth: account_from_token(token)
