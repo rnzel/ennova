@@ -98,6 +98,12 @@ classDiagram
         +list_for_owner(owner_id) tuple
         +head_hash(owner_id) str
     }
+    class SQLAlchemyEntryRepository {
+        +append(record) None
+        +get(owner_id, entry_id) StoredEntry
+        +list_for_owner(owner_id) tuple
+        +head_hash(owner_id) str
+    }
     class DiaryService {
         -EntryRepository _repository
         +add_diary_entry(owner_id, entry_id, original_content, timestamp, people) StoredEntry
@@ -313,6 +319,10 @@ classDiagram
         +start_or_load(owner_id, conversation_id) tuple
         +record_question(owner_id, conversation_id, question) None
     }
+    class SQLAlchemyOwnerConversationStore {
+        +start_or_load(owner_id, conversation_id) tuple
+        +record_question(owner_id, conversation_id, question) None
+    }
     class OwnerAnswer {
         +GroundedResponse response
         +str conversation_id
@@ -359,8 +369,10 @@ classDiagram
     StoredEntry *-- ChainedEntry : hash record
     ChainedEntry *-- EntryData : hashes
     EntryRepository <|.. InMemoryEntryRepository
+    EntryRepository <|.. SQLAlchemyEntryRepository
     InMemoryEntryRepository ..> StoredEntry
     DiaryService --> EntryRepository : uses
+    SQLAlchemyEntryRepository ..> DiaryEntryRecord : persists
     DiaryService ..> DiaryEntry : creates
     DiaryService ..> LetterEntry : creates
     AuthService --> UserRepository : uses
@@ -398,13 +410,15 @@ classDiagram
     OwnerGroundedQAService --> DiaryService : lists authenticated owner's records
     OwnerGroundedQAService --> ModelClient : sends owner-specific prompt
     OwnerGroundedQAService --> OwnerConversationStore : bounded owner-bound context
+    OwnerConversationStore <|.. SQLAlchemyOwnerConversationStore
+    SQLAlchemyOwnerConversationStore ..> OwnerConversationRecord : persists
     OwnerGroundedQAService ..> EntryView : creates verified retrieved views
     OwnerGroundedQAService ..> GroundedResponse : validates presented citation IDs
     OwnerAnswer *-- GroundedResponse : returns answer and citations
 
     note for Owner "Domain owner value object; the Flask owner account is UserAccount with role OWNER."
     note for OwnerGroundedQAService "Separate from beneficiary GroundedQAService; retrieves only the authenticated owner's verified records and does not call Prolog."
-    note for OwnerConversationStore "In-memory only; four prior questions, 30-minute idle expiry, and owner-ID isolation. No client-supplied assistant history."
+    note for OwnerConversationStore "In-memory test/demo implementation; production persists at most four owner-bound questions in SQL. No client-supplied assistant history."
     note for Grant "Domain grant data is not the Prolog evaluator. Access decisions are made by access_rules.pl."
     note for Parser "parse(source) calls module function lex(source), then Parser.parse_program(). No Lexer class exists."
     note for WritingMode "Modes and policy resolution exist, but the owner entry API does not select or apply a mode yet."

@@ -6,9 +6,11 @@ Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back E
 
 ENNOVA selects its model client through configuration in `LLM_PROVIDER`. The only accepted values are `ollama` and `fake`; an unset or invalid value fails closed with `AIServiceUnavailable`. `fake` selects the deterministic `FakeModelClient` for tests and scripted demos. It is an explicit provider choice, not an automatic fallback when Ollama fails.
 
-The Ollama client uses the `/api/chat` endpoint through Python's standard-library HTTP client. `OLLAMA_HOST` defaults to `http://localhost:11434`; other hosts require `OLLAMA_ALLOW_REMOTE=1`. The model name is required through `OLLAMA_MODEL` and is not hardcoded. The repository does not specify one active deployment model. The project log records `llama3.2:3b` for a live test; that is a tested model, not evidence of the current runtime configuration. The provider supports beneficiary Q&A, owner Q&A, and, when the model-backed summarizer is configured, write-time summary generation.
+The Ollama client uses the `/api/chat` endpoint through Python's standard-library HTTP client. `OLLAMA_HOST` defaults to `http://localhost:11434`; other hosts require `OLLAMA_ALLOW_REMOTE=1`. The model name is configured through `OLLAMA_MODEL`. The Groq adapter uses the official Groq Python SDK and the backend-only `GROQ_API_KEY`; its model is selected with `GROQ_MODEL`, defaulting to `openai/gpt-oss-120b`. Both adapters implement the same `ModelClient` interface and can serve beneficiary Q&A, owner Q&A, and model-backed summary generation. `fake` remains a deterministic test/demo provider. Provider selection never falls back silently.
 
 Requests bypass system proxies, do not follow redirects, and enforce configured context, output, response-size, per-request timeout, and total-question-deadline limits. Request and question timeout settings have safe defaults and hard upper bounds. Prompt sizing fails closed rather than dropping the system prompt or allowing truncation. Responses use Ollama's structured JSON option and are rejected if they do not match the exact answer schema.
+
+Groq calls use a bounded request timeout and strict response validation. Owner requests use Groq JSON Schema output. Beneficiary requests use Groq's local tool-calling interface and then the application's existing bounded orchestration; app-generated tool evidence is sent as untrusted user content on the next call because the existing `ModelPrompt` abstraction does not retain provider-specific tool-call IDs. The adapter does not grant Groq access to ENNOVA storage or execute tools itself. Groq documents that tool use and structured outputs cannot be combined in one request, so the two request modes are kept separate.
 
 The provider-neutral `ModelSummarizer` accepts any `ModelClient`. It frames original entries as escaped, delimited untrusted data and retries once if the summary contains eight consecutive words copied from the original. A repeated overlap or provider failure stores no summary. Successful summaries are separate from the append-only hash chain and bound to the source entry digest; retrieval omits summaries whose digest no longer matches.
 
@@ -22,7 +24,7 @@ The Q&A service first enumerates the owner's candidate entries to build access r
 
 **Separate write-time summary path:** When the owner creates an entry, the route may pass its newly stored `StoredEntry` to `ModelSummarizer`. That application-mediated model call receives the original entry text in an untrusted-data block to create a derived summary. It does not use the beneficiary Q&A tool flow or Prolog permission checks. The stored summary is digest-bound and is supplied in beneficiary Q&A only when that entry has summary permission. This write-time path is distinct from permission-checked Q&A retrieval.
 
-The model has no direct connection or credentials for the vault, database, or entry repository. All model input is passed by the application through `ModelClient` prompts: Q&A content comes from permission-filtered tools after Prolog decisions, while write-time summary input comes from the owner entry-creation path described above. The model does not make access decisions.
+The model has no direct connection or credentials for the vault, database, or entry repository. All model input is passed by the application through `ModelClient` prompts: Q&A content comes from permission-filtered tools after Prolog decisions, while write-time summary input comes from the owner entry-creation path described above. The model does not make access decisions. With Groq, diary evidence is sent to Groq's hosted inference API; deployments should disclose this external processing and confirm it meets their privacy, retention, and jurisdiction requirements. `GROQ_API_KEY` stays on the backend and must never be placed in the Expo app.
 
 The backend verifies citation IDs against entries actually presented to the model and attaches their stored dates. The model returns entry IDs rather than dates. Existence-only counts, release-date notices, and neutral no-record responses are constructed by the backend.
 
@@ -30,7 +32,7 @@ The backend verifies citation IDs against entries actually presented to the mode
 
 The owner service uses the same configured `ModelClient` but has its own prompt and retrieval context. It does not create beneficiary policy facts or call Prolog: an authenticated owner may read their own verified records. `attach_citations` is reused to validate model-proposed IDs against only the retrieved entries and take dates from their stored timestamps. If the model supplies no valid citation, the service returns the fixed no-support answer.
 
-Follow-up context is held by `OwnerConversationStore` in process memory. The client receives an opaque ID and sends it back with follow-up questions; it does not submit transcript messages or an owner ID. The store associates each ID with the authenticated owner, keeps only the four latest questions (not assistant answers), expires conversations after 30 idle minutes, and caps the process store at 500 conversations. Context is lost on process restart and is not durable chat history.
+In production, follow-up context is held by `SQLAlchemyOwnerConversationStore`. The client receives an opaque ID and sends it back with follow-up questions; it does not submit transcript messages or an owner ID. The database associates each ID with the authenticated owner and keeps only the four latest questions (not assistant answers). The current account is checked for each resumed ID. Diary evidence is retrieved and hash-verified again on every question, and beneficiary Q&A has no conversation reuse. Test/demo configurations can inject the in-memory store.
 
 ## Instructions
 
@@ -44,9 +46,9 @@ Beneficiary denied and nonexistent records follow the same neutral response path
 
 Fake-model and mocked-transport tests verify application behavior, request construction, strict response parsing, timeout and response-size limits, host restrictions, error redaction, owner isolation, citation filtering, data-flow restrictions, and fail-closed handling. They do **not** prove that a live Ollama model will follow instructions, return valid structured output, produce accurate answers or summaries, resist every prompt injection, or meet real hardware latency and availability targets. Backend permission checks, citation filtering, and fixed no-support responses enforce application behavior; the prompt alone is not an authorization boundary. The eight-word check detects only one kind of close copying.
 
-Owner retrieval is lexical with date/metadata cues and a small synonym set, not semantic embeddings. It may miss paraphrases that share no useful terms. Retrieval and conversation state are in process memory, and diary entries themselves are not durable across server restarts.
+Owner retrieval is lexical with date/metadata cues and a small synonym set, not semantic embeddings. It may miss paraphrases that share no useful terms. Production diary entries, policy source versions, lifecycle state, audit events, digest-bound summaries, and owner follow-up questions use SQL persistence. Parsed policy objects and Prolog facts are regenerated. The mobile transcript display is client state and there is no server conversation-list endpoint.
 
-The live Ollama safety test runs only when `RUN_LIVE_AI_TESTS=1`, uses fictional text, and checks safety properties such as citation allowlisting and not claiming to be the owner. It is not part of the normal offline suite and does not establish comprehensive model safety.
+The live Ollama safety test runs only when `RUN_LIVE_AI_TESTS=1`, uses fictional text, and checks safety properties such as citation allowlisting and not claiming to be the owner. It is not part of the normal offline suite and does not establish comprehensive model safety. Groq unit tests mock the SDK and do not make a live Groq request or establish account quota.
 
 ## What we would change
 
@@ -56,3 +58,7 @@ Live Ollama (`llama3.2:3b`, CPU-only) rows time out on slow hardware. Measuremen
 
 - [Ollama chat API](https://docs.ollama.com/api/chat)
 - [Ollama structured outputs](https://docs.ollama.com/capabilities/structured-outputs)
+- [Groq supported models](https://console.groq.com/docs/models)
+- [Groq tool use](https://console.groq.com/docs/tool-use/overview)
+- [Groq structured outputs](https://console.groq.com/docs/structured-outputs)
+- [Groq rate limits](https://console.groq.com/docs/rate-limits)
