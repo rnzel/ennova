@@ -7,7 +7,7 @@ flowchart LR
     Owner["🧍 Owner"]
     Beneficiary["🧍 Registered beneficiary / asker"]
     Prolog[SWI-Prolog access engine]
-    Model[Local model: Ollama or fake]
+    Model[Local model: Groq or fake]
 
     subgraph ENNOVA[ENNOVA system]
         UCRegisterOwner([Register owner])

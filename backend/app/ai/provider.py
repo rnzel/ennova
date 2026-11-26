@@ -21,10 +21,6 @@ def create_model_client(
         if fake_client is not None:
             return fake_client
         return FakeModelClient(())
-    if selected == "ollama":
-        from app.ai.ollama import OllamaClient
-
-        return OllamaClient()
     if selected == "groq":
         from app.ai.groq import GroqClient
 

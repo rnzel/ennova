@@ -22,24 +22,6 @@ class BaseConfig:
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
     GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
     GROQ_QUESTION_TIMEOUT_SECONDS = os.getenv("GROQ_QUESTION_TIMEOUT_SECONDS", "45")
-    OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-    OLLAMA_MODEL = os.getenv("OLLAMA_MODEL")
-    OLLAMA_ALLOW_REMOTE = os.getenv("OLLAMA_ALLOW_REMOTE") == "1"
-    OLLAMA_NUM_CTX = os.getenv("OLLAMA_NUM_CTX", "8192")
-    OLLAMA_MAX_OUTPUT_TOKENS = os.getenv("OLLAMA_MAX_OUTPUT_TOKENS", "512")
-    OLLAMA_REQUEST_TIMEOUT_SECONDS = os.getenv(
-        "OLLAMA_REQUEST_TIMEOUT_SECONDS", "30"
-    )
-    OLLAMA_QUESTION_TIMEOUT_SECONDS = os.getenv(
-        "OLLAMA_QUESTION_TIMEOUT_SECONDS", "45"
-    )
-    OLLAMA_CONNECT_TIMEOUT_SECONDS = os.getenv(
-        "OLLAMA_CONNECT_TIMEOUT_SECONDS", "15"
-    )
-    OLLAMA_READ_TIMEOUT_SECONDS = os.getenv("OLLAMA_READ_TIMEOUT_SECONDS", "30")
-    OLLAMA_MAX_RESPONSE_BYTES = os.getenv(
-        "OLLAMA_MAX_RESPONSE_BYTES", "1048576"
-    )
 
 
 def get_database_connect_args(ca_path: str | None = None):

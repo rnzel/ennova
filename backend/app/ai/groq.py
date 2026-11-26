@@ -8,7 +8,7 @@ from typing import Any
 
 import app.config as app_config
 from app.ai.client import ModelPrompt, ModelResponse, ToolCall
-from app.ai.ollama import _RESPONSE_SCHEMA, _TOOL_SCHEMAS
+from app.ai.schemas import _RESPONSE_SCHEMA, _TOOL_SCHEMAS
 from app.errors import AIServiceUnavailable
 
 _DEFAULT_MODEL = "openai/gpt-oss-120b"

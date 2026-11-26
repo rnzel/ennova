@@ -30,7 +30,6 @@ from app.ai.client import (
     PromptMessage,
     ToolCall,
 )
-from app.ai.ollama import _estimate_prompt_tokens, _serialize_request
 from app.ai.citations import GroundedResponse
 from app.ai.tools import EntryView
 from app.ai.prompts import NEUTRAL_REPLY
@@ -103,15 +102,6 @@ class ToolMetric:
     request_count: int = 1
 
 
-@runtime_checkable
-class _InspectableModel(Protocol):
-    """Model attributes needed to reproduce Ollama's request estimator."""
-
-    _model: str
-    _num_ctx: int
-    _max_output_tokens: int
-
-
 class InstrumentedModelClient:
     """Record model-call timing and prompt sizes without recording content."""
 
@@ -177,22 +167,11 @@ class InstrumentedModelClient:
         metric.neutral_or_empty = _is_neutral_or_empty(result)
 
     def _estimate(self, prompt: ModelPrompt) -> int:
-        client = self._client
-        if not all(
-            hasattr(client, attribute)
-            for attribute in ("_model", "_num_ctx", "_max_output_tokens")
-        ):
-            return 0
-        inspectable = client
-        if not isinstance(inspectable, _InspectableModel):
-            return 0
-        body = _serialize_request(
-            prompt,
-            inspectable._model,
-            inspectable._num_ctx,
-            inspectable._max_output_tokens,
+        content = prompt.system_prompt + "\n" + "\n".join(
+            message.content for message in prompt.messages
         )
-        return _estimate_prompt_tokens(body)
+        return max(1, len(content) // 4)
+
 
 
 def _valid_tool_call(call: object) -> bool:
@@ -503,14 +482,11 @@ def _run(args: argparse.Namespace) -> bool:
     policy_source = POLICY_PATH.read_text(encoding="utf-8")
     fixture = build_fixture()
     provider = os.getenv("LLM_PROVIDER", "").strip().casefold()
-    if provider not in {"ollama", "fake"}:
+    if provider not in {"groq", "fake"}:
         raise AIServiceUnavailable()
-    model_name = os.getenv("OLLAMA_MODEL", "").strip()
     warmup_unavailable = False
-    if provider == "ollama":
-        if not model_name:
-            raise AIServiceUnavailable()
-        print(f"Provider: ollama (model: {model_name})")
+    if provider == "groq":
+        print("Provider: Groq")
         model = create_model_client()
         try:
             print(f"Warm-up load time: {_warm_up(model):.3f}s")

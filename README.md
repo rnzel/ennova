@@ -27,8 +27,7 @@ ENNOVA is a personal AI diary and digital legacy app that keeps owner-written en
    - `JWT_SECRET_KEY`: at least 32 characters. Generate one with `python -c "import secrets; print(secrets.token_hex(32))"`.
    - `DATABASE_URL`: Aiven MySQL SQLAlchemy URL, for example `mysql+pymysql://USER:PASSWORD@HOST:PORT/DATABASE`. URL-encode special characters in the username or password.
    - `AIVEN_CA_PATH`: path to the Aiven CA certificate file supplied for your service. The backend passes it as the PyMySQL TLS CA setting.
-   - `LLM_PROVIDER`: `fake` (scripted answers, no model needed) or `ollama`.
-   - `OLLAMA_MODEL`: only when using Ollama. Install Ollama, run `ollama pull <model>`, and use the exact name shown by `ollama list`.
+   - `LLM_PROVIDER`: `fake` (scripted answers, no model needed) or `groq`. For Groq, set `GROQ_API_KEY` and optionally `GROQ_MODEL`.
 6. Install SWI-Prolog and make `swipl` available on `PATH`, or set `SWIPL_EXECUTABLE` in `.env`. Check it with `swipl --version`.
 7. Run the tests from `backend/`: `pytest`
 8. Start the app: `python run.py`
@@ -59,7 +58,7 @@ teal, and pale cyan.
 
 ### AI provider selection
 
-The backend supports `groq`, `ollama`, and `fake` through `LLM_PROVIDER`. Groq uses the official Python SDK, `GROQ_API_KEY`, and defaults to `GROQ_MODEL=openai/gpt-oss-120b`; install dependencies from `backend/requirements.txt`, then set the key in the backend's ignored `.env`. Never put the Groq key in the mobile app. To switch providers, change `LLM_PROVIDER` and supply that provider's configuration; there is no automatic fallback. Groq sends the prompt evidence to hosted inference, and organization quotas vary by plan.
+The backend supports `groq` and `fake` through `LLM_PROVIDER`. Groq uses the official Python SDK, `GROQ_API_KEY`, and defaults to `GROQ_MODEL=openai/gpt-oss-120b`; install dependencies from `backend/requirements.txt`, then set the key in the backend's ignored `.env`. Never put the Groq key in the mobile app. To switch providers, change `LLM_PROVIDER` and supply that provider's configuration; there is no automatic fallback. Groq sends the prompt evidence to hosted inference, and organization quotas vary by plan.
 
 ### Persistent account database
 

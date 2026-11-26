@@ -1199,66 +1199,6 @@ def test_different_names_tags_owner_and_letter_title_keep_access_behavior(
     assert unregistered == GroundedResponse(NEUTRAL_REPLY)
 
 
-@pytest.mark.skipif(
-    os.getenv("RUN_LIVE_AI_TESTS") != "1",
-    reason="set RUN_LIVE_AI_TESTS=1 to run live Ollama family Q&A",
-)
-def test_live_ollama_generates_family_answer_with_permitted_citations(
-    grounded_sample: GroundedSample,
-):
-    from app.ai.provider import create_model_client
-
-    model = create_model_client()
-    original_complete = model.complete
-    call_count = 0
-
-    def counted_complete(prompt):
-        nonlocal call_count
-        call_count += 1
-        return original_complete(prompt)
-
-    model.complete = counted_complete
-    warmup_started = time.monotonic()
-    try:
-        model.complete(
-            ModelPrompt(
-                "Reply with OK only.",
-                (PromptMessage("user", "OK"),),
-                (),
-            )
-        )
-    except AIServiceUnavailable:
-        pytest.skip("Live Ollama warm-up was unavailable.")
-
-    service = GroundedQAService(
-        grounded_sample.service,
-        PrologAccessBridge(
-            grounded_sample.swipl_executable,
-            timeout_seconds=5.0,
-        ),
-        model,
-        grounded_sample.summaries,
-    )
-    response = service.answer(
-        "What did he write about family?",
-        owner_id=grounded_sample.owner_id,
-        asker="maria",
-        policy_source=MARIA_POLICY,
-        app_facts=grounded_sample.app_facts,
-        today=date(2040, 5, 1),
-    )
-
-    assert call_count >= 2
-    assert response.text.strip()
-    assert response.text != NEUTRAL_REPLY
-    assert tuple(citation.entry_id for citation in response.citations) in (
-        ("e_family",),
-        ("e_family_2",),
-        ("e_family", "e_family_2"),
-        ("e_family_2", "e_family"),
-    )
-
-
 def test_swipl_setting_is_read_from_environment(monkeypatch: pytest.MonkeyPatch):
     import app.config as config
 

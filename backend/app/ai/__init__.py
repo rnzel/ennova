@@ -10,7 +10,6 @@ from .client import (
 )
 from .citations import Citation, GroundedResponse
 from .model_summaries import ModelSummarizer
-from .ollama import OllamaClient
 from .provider import create_model_client
 from .summaries import (
     FakeSummarizer,
@@ -31,7 +30,6 @@ __all__ = [
     "ModelPrompt",
     "ModelResponse",
     "ModelSummarizer",
-    "OllamaClient",
     "PromptMessage",
     "SummaryArtifact",
     "SummaryStore",

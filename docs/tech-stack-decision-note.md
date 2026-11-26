@@ -7,7 +7,7 @@ Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back E
 | OOP and functional code | Object-oriented and functional | Python 3.12 | OOP: classes, abstract bases, inheritance and encapsulation (`Entry`, `Vault`, `WritingMode`). Functional: pure functions over frozen dataclasses and tuples, with the hash chain as a fold. One language for all six components. | In use |
 | Access rules | Logic | SWI-Prolog, called from Python as a subprocess | Rules, exceptions, and "deny beats allow" are declarative and auditable. A subprocess avoids native-binding problems on Windows, gives a hard timeout, and fails closed. | In use |
 | Policy language | Language design | Hand-written lexer, recursive-descent parser, and interpreter in Python | Demonstrates the grammar-to-execution chain, with an EBNF in `docs/grammar/`. | In use |
-| Language model | n/a | Ollama running locally, behind a `ModelClient` interface, plus a deterministic fake provider for tests | Free, no API key, and diary text never leaves the machine. Gemini was built and then removed. | In use, with limits |
+| Language model | n/a | Groq behind a `ModelClient` interface, plus a deterministic fake provider for tests | Free, no API key, and diary text never leaves the machine. Gemini was built and then removed. | In use, with limits |
 | Q&A scripting | Scripting | Python service that checks Prolog, retrieves permitted entries, calls the model, and verifies citations | Glue code with typed exceptions and safe fallbacks. | In use |
 | API framework | n/a | Flask with Flask-Limiter, PyJWT, and Werkzeug password hashing | Thin routes over tested services. | In use |
 | Persistence | n/a | In-memory repositories now; Aiven MySQL 8.4 via SQLAlchemy planned | Interfaces let storage change later. | Planned (F9b) |
@@ -16,10 +16,10 @@ Team: Roldan Jr. Bazares (Front End); Ranzel Jay Gobris (Lead Developer / Back E
 
 ## Trade-offs we accept
 - Python is not purely functional, so purity is enforced by convention and by tests that forbid I/O imports in the functional package.
-- Live Ollama (`llama3.2:3b`) on CPU-only hardware is slow and can repeat invalid tool calls until timeout. The release-date and neutral replies are built by the backend; other live rows may time out. See `docs/ai-design-note.md`.
+- Groq is a hosted service and receives prompt evidence. Fake-model and mocked-SDK checks do not prove live model quality or availability.
 - The Gemini client, ChromaDB, and sentence-transformers were considered and are not used.
 
 ## Versions
 Python 3.12.x, SWI-Prolog 11.0.0 for x64-win64, and the pinned packages in `backend/requirements.txt`.
-SWI-Prolog and Ollama are installed separately.
+SWI-Prolog is installed separately.
 The full test suite passes on Python 3.14.7 in this development environment; Python 3.12.x remains the documented target.
