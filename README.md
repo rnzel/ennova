@@ -57,13 +57,17 @@ The logo is bundled at
 `frontend/mobile/assets/images/ennova-logo.jpg`; its palette uses deep navy,
 teal, and pale cyan.
 
+### AI provider selection
+
+The backend supports `groq`, `ollama`, and `fake` through `LLM_PROVIDER`. Groq uses the official Python SDK, `GROQ_API_KEY`, and defaults to `GROQ_MODEL=openai/gpt-oss-120b`; install dependencies from `backend/requirements.txt`, then set the key in the backend's ignored `.env`. Never put the Groq key in the mobile app. To switch providers, change `LLM_PROVIDER` and supply that provider's configuration; there is no automatic fallback. Groq sends the prompt evidence to hosted inference, and organization quotas vary by plan.
+
 ### Persistent account database
 
 Owner accounts, beneficiary accounts, and invitations use the configured MySQL database. The `accounts` table stores normalized username/email, role, owner/person IDs, a password hash, and creation time. The `invitations` table stores only the invitation hash, owner/person IDs, expiry, and used state. Unique database constraints protect usernames, emails, and owner/person pairs. Beneficiary insertion and invitation use are committed in one transaction.
 
 After checking the target Aiven database schema and confirming these table names are unused, initialize the schema from `backend/` with `flask --app run db upgrade`. The migration adds `accounts` and `invitations`; it does not drop tables, and its downgrade is intentionally disabled. Do not point tests at a production database. The SQL repository tests use isolated in-memory SQLite; live integration checks should use a dedicated disposable test database.
 
-The local `.env` is loaded by the app configuration and is ignored by Git. Missing MySQL configuration prevents normal app startup; the backend does not fall back to in-memory account storage.
+The local `.env` is loaded by the app configuration and is ignored by Git. Production uses SQLAlchemy persistence for accounts, invitations, diary entries and their hash chain, policy/lifecycle/audit state, derived summaries, and bounded owner chatbot follow-up context. Migrations do not run automatically. Apply them deliberately with `flask --app run db upgrade` from `backend/`, after checking the selected database and taking a backup. See [the API and configuration reference](docs/api-and-configuration.md) for persistence and recovery notes.
 
 ## Repository layout
 | Path | Contents |
@@ -90,8 +94,8 @@ The local `.env` is loaded by the app configuration and is ignored by Git. Missi
 - Letters of Wishes in ENNOVA are personal messages and are not legal wills or substitutes for legally executed estate documents. ENNOVA does not provide legal advice.
 
 ## Known limitations
-- Entries, policies, and audit state are in memory; account and invitation records are persisted in MySQL.
-- Owner chatbot conversation questions are held in bounded, owner-bound process memory and are lost on restart; diary entries themselves are also in memory.
+- Production diary, policy, lifecycle, audit, derived-summary, and owner follow-up data use the configured SQL database. The in-memory versions remain injectable for tests/demos.
+- Production owner chatbot follow-up questions are bounded and owner-bound in SQL; test/demo adapters can remain in memory.
 - Flask-Limiter uses in-memory rate-limit storage, so limits are per-process and are not suitable for production or multiple workers.
 - No CI/CD, Docker, or deployment files are present.
 - The Expo mobile client is a prototype and has not received full real-device or accessibility certification.

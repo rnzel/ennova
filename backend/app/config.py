@@ -19,6 +19,9 @@ class BaseConfig:
     AIVEN_CA_PATH = os.getenv("AIVEN_CA_PATH", "")
     SWIPL_EXECUTABLE = os.getenv("SWIPL_EXECUTABLE", "swipl")
     LLM_PROVIDER = os.getenv("LLM_PROVIDER")
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+    GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+    GROQ_QUESTION_TIMEOUT_SECONDS = os.getenv("GROQ_QUESTION_TIMEOUT_SECONDS", "45")
     OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
     OLLAMA_MODEL = os.getenv("OLLAMA_MODEL")
     OLLAMA_ALLOW_REMOTE = os.getenv("OLLAMA_ALLOW_REMOTE") == "1"

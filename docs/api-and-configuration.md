@@ -41,9 +41,9 @@ On follow-up requests, include the `conversation_id` returned for this conversat
 }
 ```
 
-When retrieval finds no supporting entry, the endpoint returns HTTP 200 with `no_record: true`, the fixed no-support answer, and an empty citations array. Citation IDs returned by the model are filtered against the exact entries supplied to it, and citation dates come from stored entry timestamps. Requests are limited to 2,000 characters and 20 per minute per account. The endpoint returns safe 401/403 responses for missing/invalid authentication and non-owner accounts, 400 for invalid input or a conversation that is missing, expired, or belongs to another owner, and 503 when the model is unavailable.
+When retrieval finds no supporting entry, the endpoint returns HTTP 200 with `no_record: true`, the fixed no-support answer, and an empty citations array. Citation IDs returned by the model are filtered against the exact entries supplied to it, and citation dates come from stored entry timestamps. Requests are limited to 2,000 characters and 20 per minute per account. The endpoint returns safe 401/403 responses for missing/invalid authentication and non-owner accounts, 400 for invalid input or a conversation that is missing or belongs to another owner, and 503 when the model is unavailable.
 
-Conversation context is process-local: it keeps at most four prior questions per conversation, expires after 30 minutes of inactivity, and is lost when the backend process restarts. Diary entries are also held by the current in-memory entry repository and are not durable across restarts. Owner retrieval uses local lexical ranking, metadata and date cues with a small synonym expansion; it does not use embeddings or an external vector database. A broad paraphrase may therefore miss an entry.
+Conversation follow-up context is stored in SQL as at most four prior user questions per owner-bound conversation. Diary records are loaded and hash-verified again on every request. There is no conversation listing API; the client must retain the returned opaque ID. Owner retrieval uses local lexical ranking, metadata and date cues with a small synonym expansion; it does not use embeddings or an external vector database. A broad paraphrase may therefore miss an entry.
 
 Beneficiary `POST /ask` remains a separate workflow. It resolves the owner's policy through Prolog before permitted record views reach its model context; the owner endpoint does not modify that authorization path.
 
@@ -51,6 +51,12 @@ Letter responses include a `disclaimer` field:
 `Letters of Wishes in ENNOVA are personal messages and are not legal wills or substitutes for legally executed estate documents. ENNOVA does not provide legal advice.`
 
 The disclaimer appears for letter creation/listing, released-letter answers, and pre-release letter-date answers. It does not appear in diary entries or neutral denied/no-record answers.
+
+## Durable application data
+
+The production factory uses the configured SQLAlchemy database for append-only diary and letter entries, ordered name/topic metadata, policy source versions, the irreversible death-trigger state, audit events, digest-bound derived summaries, and owner chatbot follow-up questions. The hash chain stores both the database timestamp and the exact original ISO timestamp string used in the digest. Prolog facts and parsed policy ASTs are rebuilt from persisted entries and policy source. Beneficiary Q&A remains stateless and re-evaluates current Prolog policy on every question. No upload route or document storage exists, so no file store is configured.
+
+The new migration is forward-only to protect diary and audit data. From `backend/`, apply locally with `flask --app run db upgrade`; for deployment, back up the database, verify the target and migration plan, and run the same command in the deployment environment. Verify with `flask --app run db current`. Recovery requires restoring a consistent database backup; backups must be encrypted, access-restricted, and retention-controlled. This repository does not supply an automated backup policy.
 
 ## Environment variables
 
@@ -67,7 +73,10 @@ Defaults below are the application's defaults in `backend/app/config.py`, unless
 | `DATABASE_URL` | SQLAlchemy database URL | `sqlite:///ennova.db` | No; set to use MySQL |
 | `AIVEN_CA_PATH` | Aiven MySQL CA certificate path | Empty | Required for CA-verified Aiven TLS |
 | `SWIPL_EXECUTABLE` | SWI-Prolog executable or path | `swipl` | Required to evaluate Prolog access rules |
-| `LLM_PROVIDER` | Select `ollama` or `fake` | None | Required to select an AI provider |
+| `LLM_PROVIDER` | Select `groq`, `ollama`, or `fake` | None | Required to select an AI provider |
+| `GROQ_API_KEY` | Backend-only Groq API key | None | Required when `LLM_PROVIDER=groq` |
+| `GROQ_MODEL` | Groq inference model ID | `openai/gpt-oss-120b` | No |
+| `GROQ_QUESTION_TIMEOUT_SECONDS` | Total Groq question deadline | `45` | No |
 | `OLLAMA_HOST` | Ollama server host | `http://localhost:11434` | No |
 | `OLLAMA_MODEL` | Ollama model name | None | Required when `LLM_PROVIDER=ollama` |
 | `OLLAMA_ALLOW_REMOTE` | Opt in to a non-loopback Ollama host | `0` | No |
@@ -80,4 +89,4 @@ Defaults below are the application's defaults in `backend/app/config.py`, unless
 | `OLLAMA_MAX_RESPONSE_BYTES` | Maximum Ollama response size | `1048576` | No |
 | `RUN_LIVE_AI_TESTS` | Enable live-provider tests when set to `1` | `0` in `.env.example` | No |
 
-`FLASK_ENV` is present in `.env.example` but is not read by the Python configuration. Ollama-specific variables apply when using the Ollama provider. The application can start without an AI provider, but model-backed Q&A is unavailable in that case.
+`FLASK_ENV` is present in `.env.example` but is not read by the Python configuration. Groq and Ollama configuration are provider-specific. Select `LLM_PROVIDER=groq` with a server-side key, `LLM_PROVIDER=ollama` with the Ollama settings, or `LLM_PROVIDER=fake` for deterministic tests/demos. No provider silently falls back to another. Groq is a hosted service: diary evidence included in prompts is transmitted to Groq. Keep keys out of source control and the mobile client. Availability and quotas depend on the model and Groq organization plan; check the current organization Limits page rather than assuming a free-tier allowance.

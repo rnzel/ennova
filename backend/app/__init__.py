@@ -30,6 +30,10 @@ from app.services.auth_service import AuthService
 from app.services.diary_service import DiaryService
 from app.services.grounded_qa import GroundedQAService
 from app.services.owner_grounded_qa import OwnerGroundedQAService
+from app.infrastructure.sql_persistence import (
+    SQLAlchemyApiState, SQLAlchemyEntryRepository, SQLAlchemyOwnerConversationStore,
+    SQLAlchemySummaryStore,
+)
 from app.routes import (
     ask_bp,
     auth_bp,
@@ -50,6 +54,9 @@ def create_app(
     summarizer=None,
     config_overrides: dict | None = None,
     user_repository=None,
+    entry_repository=None,
+    api_state=None,
+    summary_store=None,
 ) -> Flask:
     """Create and configure the Flask application instance."""
     app = Flask(__name__)
@@ -81,8 +88,9 @@ def create_app(
     migrate.init_app(app, db)
     limiter.init_app(app)
 
-    entry_repository = InMemoryEntryRepository()
-    api_state = InMemoryApiState()
+    durable = not app.config.get("TESTING")
+    entry_repository = entry_repository or (SQLAlchemyEntryRepository() if durable else InMemoryEntryRepository())
+    api_state = api_state or (SQLAlchemyApiState() if durable else InMemoryApiState())
     app_clock = clock or (lambda: datetime.now(timezone.utc))
     auth_service = AuthService(
         user_repository,
@@ -90,7 +98,7 @@ def create_app(
         jwt_secret=app.config.get("JWT_SECRET_KEY"),
     )
     diary_service = DiaryService(entry_repository)
-    summary_store = InMemorySummaryStore()
+    summary_store = summary_store or (SQLAlchemySummaryStore() if durable else InMemorySummaryStore())
     if model_client is None:
         try:
             model_client = create_model_client()
@@ -145,6 +153,7 @@ def create_app(
         app.extensions["owner_qa_service"] = OwnerGroundedQAService(
             diary_service,
             model_client,
+            SQLAlchemyOwnerConversationStore() if durable else None,
         )
 
     @app.errorhandler(400)

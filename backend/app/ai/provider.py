@@ -25,6 +25,10 @@ def create_model_client(
         from app.ai.ollama import OllamaClient
 
         return OllamaClient()
+    if selected == "groq":
+        from app.ai.groq import GroqClient
+
+        return GroqClient()
     raise AIServiceUnavailable(detail="LLM_PROVIDER is not configured")
 
 
