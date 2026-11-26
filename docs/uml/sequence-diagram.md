@@ -75,6 +75,57 @@ sequenceDiagram
 
 The saved original remains the source of the hash chain. Summaries are stored separately; a summary failure is swallowed by the route and does not overwrite the original.
 
+## Owner asks about their own diary
+
+```mermaid
+sequenceDiagram
+    actor Owner
+    participant UI as Expo Assistant screen
+    participant API as Flask Owner Ask Route
+    participant Auth as AuthService
+    participant QA as OwnerGroundedQAService
+    participant Conversations as OwnerConversationStore
+    participant Diary as DiaryService / EntryRepository
+    participant Search as Owner entry retrieval
+    participant Model as ModelClient (Ollama or fake)
+    participant Citations as Citation validation
+
+    Owner->>UI: Enter natural-language question
+    UI->>API: POST /owner/ask (Bearer token, question, optional conversation_id)
+    API->>Auth: account_from_token(token)
+    alt Authentication fails or account is not an owner
+        Auth-->>API: Safe authentication or role error
+        API-->>UI: 401 / 403
+    else Owner authenticated
+        API->>QA: answer(question, account.owner_id, today, conversation_id)
+        QA->>Conversations: start_or_load(owner_id, opaque_id)
+        Conversations-->>QA: recent questions for this owner only
+        QA->>Diary: list_entries(authenticated owner_id)
+        Diary-->>QA: owner-scoped StoredEntry records
+        QA->>QA: Verify each record and discard invalid records
+        QA->>Search: Rank owner records by text, names, topics, and date cues
+        Search-->>QA: Up to six relevant EntryViews
+        alt No relevant entries
+            QA-->>API: Fixed no-support answer; no model call
+        else Relevant entries found
+            QA->>Model: Owner prompt, current/previous questions, escaped retrieved entries
+            Model-->>QA: Answer text and proposed citation IDs
+            QA->>Citations: Validate IDs against only presented entries
+            Citations-->>QA: Verified IDs with dates from stored records
+            opt No valid citations
+                QA-->>QA: Replace answer with fixed no-support response
+            end
+        end
+        QA->>Conversations: Store current question, bounded to four questions
+        QA-->>API: Answer, citation dates, no_record, opaque conversation_id
+        API-->>UI: JSON answer and citations
+        UI-->>Owner: Render message bubble and cited entry dates
+    end
+
+    Note over QA,Conversations: Conversation questions are owner-bound, expire after 30 idle minutes, and are lost when this process restarts. Client-supplied assistant messages and owner IDs are not accepted as context.
+    Note over QA,Model: Owner Q&A does not use the beneficiary Prolog workflow. It retrieves only the authenticated owner's verified entries; beneficiary /ask retains its existing Prolog permission checks.
+```
+
 ## Registered beneficiary asks a question
 
 ```mermaid

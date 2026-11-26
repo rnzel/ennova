@@ -29,7 +29,15 @@ from app.services.api_state import AuditRecord, InMemoryApiState
 from app.services.auth_service import AuthService
 from app.services.diary_service import DiaryService
 from app.services.grounded_qa import GroundedQAService
-from app.routes import ask_bp, auth_bp, death_bp, entries_bp, policy_bp
+from app.services.owner_grounded_qa import OwnerGroundedQAService
+from app.routes import (
+    ask_bp,
+    auth_bp,
+    death_bp,
+    entries_bp,
+    owner_ask_bp,
+    policy_bp,
+)
 from app.routes.common import limiter
 from .config import BaseConfig, get_database_connect_args
 from .extensions import db, migrate
@@ -134,6 +142,10 @@ def create_app(
             model_client,
             summary_store,
         )
+        app.extensions["owner_qa_service"] = OwnerGroundedQAService(
+            diary_service,
+            model_client,
+        )
 
     @app.errorhandler(400)
     def bad_request(error):
@@ -199,6 +211,7 @@ def create_app(
     app.register_blueprint(entries_bp)
     app.register_blueprint(policy_bp)
     app.register_blueprint(ask_bp)
+    app.register_blueprint(owner_ask_bp)
     app.register_blueprint(death_bp)
 
     @app.get("/health")

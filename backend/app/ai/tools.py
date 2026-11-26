@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 from datetime import date
+import re
 from typing import Mapping
 
 from app.ai.prompts import LETTER_NOT_YET_MESSAGE, NEUTRAL_REPLY
@@ -146,6 +147,119 @@ def search_entries(query: str, context: ToolContext) -> tuple[EntryView, ...]:
     return tuple(view for _, view in candidates)
 
 
+def search_owner_entries(
+    query: str,
+    owner_id: str,
+    entries: tuple[StoredEntry, ...],
+    *,
+    today: date,
+    limit: int = 6,
+    date_context: str | None = None,
+) -> tuple[EntryView, ...]:
+    """Rank verified owner records using diary text, metadata, and date cues.
+
+    This local retrieval path is deliberately separate from beneficiary
+    ``search_entries``: it has no Prolog permission map and accepts only the
+    authenticated owner's already verified records.
+    """
+    if not isinstance(query, str) or not isinstance(owner_id, str):
+        return ()
+    if not isinstance(entries, tuple) or not isinstance(today, date):
+        return ()
+    if not isinstance(limit, int) or limit < 1:
+        return ()
+
+    tokens = _owner_query_tokens(query)
+    date_query = date_context if isinstance(date_context, str) else query
+    requested_years = tuple(re.findall(r"\b(?:19|20)\d{2}\b", date_query))
+    has_last_year = "last year" in date_query.casefold()
+    if not tokens and not requested_years and not has_last_year:
+        return ()
+    target_years = {requested_years[-1]} if requested_years else set()
+    if has_last_year:
+        target_years.add(str(today.year - 1))
+
+    scored: list[tuple[int, date, str, EntryView]] = []
+    for record in entries:
+        if record.owner_id != owner_id:
+            continue
+        entry = record.entry
+        entry_date = entry.created_at.date()
+        if target_years and str(entry_date.year) not in target_years:
+            continue
+
+        content_tokens = set(_owner_query_tokens(entry.original_content))
+        metadata_tokens = set(
+            _owner_query_tokens(" ".join((*record.names, *record.topics)))
+        )
+        score = sum(
+            (2 if token in content_tokens else 0)
+            + (3 if token in metadata_tokens else 0)
+            for token in tokens
+        )
+        if not tokens and target_years:
+            score = 1
+        if score <= 0:
+            continue
+        scored.append(
+            (
+                score,
+                entry_date,
+                entry.entry_id,
+                EntryView(entry.entry_id, entry_date, "verbatim", entry.original_content),
+            )
+        )
+
+    scored.sort(key=lambda item: (-item[0], item[1], item[2]))
+    return tuple(item[3] for item in scored[:limit])
+
+
+_OWNER_STOPWORDS = frozenset(
+    {
+        "a", "about", "an", "and", "are", "at", "did", "do", "does",
+        "for", "from", "i", "in", "into", "is", "it", "me", "my", "of",
+        "during", "last", "on", "or", "that", "the", "their", "them", "there", "these",
+        "they", "this", "to", "was", "were", "what", "when", "where",
+        "which", "who", "summarize", "summary", "diary", "with", "would", "write", "wrote", "year", "your",
+    }
+)
+_OWNER_SYNONYM_GROUPS = (
+    frozenset({"happy", "happiest", "happiness", "joy", "joyful", "glad", "delight", "wonderful", "memorable", "best"}),
+    frozenset({"challenge", "challenging", "hard", "hardship", "difficult", "difficulty", "struggle", "obstacle"}),
+    frozenset({"goal", "goals", "career", "ambition", "aspiration", "future", "profession"}),
+    frozenset({"lesson", "lessons", "learn", "learned", "realize", "realized", "taught", "experience"}),
+)
+
+
+def _owner_query_tokens(value: str) -> tuple[str, ...]:
+    tokens: list[str] = []
+    for token in re.findall(r"[\w]+", value.casefold(), flags=re.UNICODE):
+        if token in _OWNER_STOPWORDS or token.isdigit():
+            continue
+        token = _normalize_owner_token(token)
+        tokens.append(token)
+        for group in _OWNER_SYNONYM_GROUPS:
+            if token in group:
+                tokens.extend(sorted(_normalize_owner_token(item) for item in group if item != token))
+                break
+    return tuple(dict.fromkeys(tokens))
+
+
+def _normalize_owner_token(token: str) -> str:
+    if len(token) > 5 and token.endswith("ies"):
+        return token[:-3] + "y"
+    if len(token) > 5 and token.endswith("ing"):
+        return token[:-3]
+    if len(token) > 4 and token.endswith("ed"):
+        stem = token[:-2]
+        if stem.endswith(("gl", "z", "nc")):
+            return stem + "e"
+        return stem
+    if len(token) > 3 and token.endswith("s"):
+        return token[:-1]
+    return token
+
+
 def get_entry(entry_id: str, context: ToolContext) -> EntryView | None:
     """Return one verified view at its resolved permission level."""
     record = next(
@@ -254,5 +368,6 @@ __all__ = [
     "get_entry",
     "get_letter",
     "search_entries",
+    "search_owner_entries",
     "verify_entry",
 ]

@@ -19,9 +19,12 @@ flowchart LR
         UCPolicy([Submit or replace policy])
         UCTrigger([Confirm death trigger and freeze policy])
         UCAsk([Ask a grounded question])
+        UCOwnerAsk([Chat about own diary])
         UCAccess([Resolve per-entry access])
         UCRetrieve([Retrieve permitted entry views])
         UCAnswer([Generate answer from permitted context])
+        UCOwnerRetrieve([Retrieve own verified records])
+        UCOwnerAnswer([Generate cited owner answer])
         UCMode([Apply selected writing mode to entry])
     end
 
@@ -33,6 +36,7 @@ flowchart LR
     Owner --- UCPolicy
     Owner --- UCTrigger
     Owner --- UCMode
+    Owner --- UCOwnerAsk
 
     Beneficiary --- UCRedeem
     Beneficiary --- UCLogin
@@ -41,8 +45,11 @@ flowchart LR
     UCAsk -. includes .-> UCAccess
     UCAsk -. includes .-> UCRetrieve
     UCAsk -. includes .-> UCAnswer
+    UCOwnerAsk -. includes .-> UCOwnerRetrieve
+    UCOwnerAsk -. includes .-> UCOwnerAnswer
     Prolog --- UCAccess
     Model --- UCAnswer
+    Model --- UCOwnerAnswer
 
     UCMode -. "planned: no owner API/UI flow" .-> UCCreate
 
@@ -52,4 +59,4 @@ flowchart LR
     class Owner,Beneficiary actor;
 ```
 
-The owner and registered beneficiary use a standing-person symbol as the actor figure, while the system boundary contains ENNOVA use cases. The `/entries` endpoint supports owner-created diary entries and letters, and the writing-mode classes can derive immutable versions. However, the API does not accept a selected mode or call the mode registry when saving an entry; that owner-facing workflow remains planned. Beneficiary questions pass through Prolog authorization, and the model receives only permitted tool results. Owner Q&A is not implemented and returns the neutral reply. Policy `trustee is` and `transfer custody` statements are parsed into facts, but trustee administration is not an implemented interaction.
+The owner and registered beneficiary use a standing-person symbol as the actor figure, while the system boundary contains ENNOVA use cases. The owner chatbot and beneficiary Q&A are separate: owner questions retrieve only the authenticated owner's verified records and do not call Prolog; beneficiary questions pass through Prolog authorization and send only permitted tool results to the model. Owner conversation context is temporary and owner-bound. The `/entries` endpoint supports owner-created diary entries and letters, and the writing-mode classes can derive immutable versions. However, the API does not accept a selected mode or call the mode registry when saving an entry; that owner-facing workflow remains planned. Policy `trustee is` and `transfer custody` statements are parsed into facts, but trustee administration is not an implemented interaction.

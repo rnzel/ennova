@@ -51,6 +51,12 @@ export type AskResponse = {
   citations: AskCitation[]
 }
 
+export type OwnerAskResponse = AskResponse & {
+  conversation_id: string
+  no_record: boolean
+  disclaimer?: string
+}
+
 export type InvitationResponse = {
   invitation_code: string
   person_id: string

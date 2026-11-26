@@ -302,6 +302,22 @@ classDiagram
         -SummaryStore _summary_store
         +answer(question, owner_id, asker, policy_source, app_facts, today) GroundedResponse
     }
+    class OwnerGroundedQAService {
+        -DiaryService _diary_service
+        -ModelClient _model_client
+        -OwnerConversationStore _conversations
+        +answer(question, owner_id, today, conversation_id) OwnerAnswer
+    }
+    class OwnerConversationStore {
+        -dict _conversations
+        +start_or_load(owner_id, conversation_id) tuple
+        +record_question(owner_id, conversation_id, question) None
+    }
+    class OwnerAnswer {
+        +GroundedResponse response
+        +str conversation_id
+        +bool no_record
+    }
     class ToolContext {
         +str owner_id
         +str asker
@@ -316,6 +332,11 @@ classDiagram
         +date entry_date
         +PolicyAccessLevel level
         +str content
+    }
+    class GroundedResponse {
+        +str text
+        +tuple citations
+        +str disclaimer
     }
     class ModelClient {
         <<interface / Protocol>>
@@ -374,8 +395,16 @@ classDiagram
     GroundedQAService ..> ModelClient : supplies prepared prompts
     GroundedQAService ..> ToolContext : builds after decisions
     ToolContext o-- EntryView : tools return views
+    OwnerGroundedQAService --> DiaryService : lists authenticated owner's records
+    OwnerGroundedQAService --> ModelClient : sends owner-specific prompt
+    OwnerGroundedQAService --> OwnerConversationStore : bounded owner-bound context
+    OwnerGroundedQAService ..> EntryView : creates verified retrieved views
+    OwnerGroundedQAService ..> GroundedResponse : validates presented citation IDs
+    OwnerAnswer *-- GroundedResponse : returns answer and citations
 
     note for Owner "Domain owner value object; the Flask owner account is UserAccount with role OWNER."
+    note for OwnerGroundedQAService "Separate from beneficiary GroundedQAService; retrieves only the authenticated owner's verified records and does not call Prolog."
+    note for OwnerConversationStore "In-memory only; four prior questions, 30-minute idle expiry, and owner-ID isolation. No client-supplied assistant history."
     note for Grant "Domain grant data is not the Prolog evaluator. Access decisions are made by access_rules.pl."
     note for Parser "parse(source) calls module function lex(source), then Parser.parse_program(). No Lexer class exists."
     note for WritingMode "Modes and policy resolution exist, but the owner entry API does not select or apply a mode yet."

@@ -22,6 +22,9 @@ export const colors = {
   sharedInk: '#17684D',
   restricted: '#F8E9C9',
   restrictedInk: '#795719',
+  danger: '#8A3434',
+  dangerBorder: '#E6B7B7',
+  dangerBackground: '#FFF5F5',
 } as const
 
 export const spacing = {
