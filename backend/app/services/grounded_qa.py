@@ -418,6 +418,26 @@ class GroundedQAService:
                     return GroundedResponse(
                         f"Yes. {result} permitted record(s) mention {name}."
                     )
+                if (
+                    isinstance(call, ToolCall)
+                    and call.name == "get_letter"
+                    and isinstance(result, EntryView)
+                ):
+                    record = next(
+                        (
+                            item
+                            for item in context.entries
+                            if item.entry.entry_id == result.entry_id
+                        ),
+                        None,
+                    )
+                    if record is None:
+                        return GroundedResponse(NEUTRAL_REPLY)
+                    return attach_citations(
+                        result.content,
+                        (result.entry_id,),
+                        {result.entry_id: record},
+                    )
                 if isinstance(result, tuple) and not result:
                     return GroundedResponse(NEUTRAL_REPLY)
                 views = result if isinstance(result, tuple) else (result,)

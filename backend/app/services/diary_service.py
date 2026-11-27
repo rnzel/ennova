@@ -2,7 +2,7 @@
 # Paradigm: Object-oriented service using a functional entry pipeline
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
 from app.domain.diary import (
     DiaryEntry,
@@ -55,19 +55,25 @@ class DiaryService:
         recipient: str,
         timestamp: datetime,
         people: tuple[PersonReference, ...] = (),
+        *,
+        release_date: date | None = None,
     ) -> StoredEntry:
-        """Append a letter with an owner-unique title and policy-based release."""
+        """Append a letter with descriptive release metadata.
+
+        Authorization remains policy-based; ``release_date`` records the
+        fixture or owner-supplied date and never grants access by itself.
+        """
         self._validate_timestamp(timestamp)
         if not isinstance(owner_id, str) or not owner_id.strip():
             raise ValueError("owner_id must be a non-empty string.")
-        # The policy is the source of truth for release dates, not LetterEntry.release_date.
+        # This metadata is descriptive; Prolog policy remains authoritative.
         entry = LetterEntry(
             entry_id,
             timestamp,
             original_content,
             title,
             recipient,
-            release_date=None,
+            release_date=release_date,
         )
         title_key = entry.title.casefold()
         if any(
@@ -138,6 +144,8 @@ class DiaryService:
             metadata.extend(
                 (("title", entry.title), ("recipient", entry.recipient))
             )
+            if entry.release_date is not None:
+                metadata.append(("release_date", entry.release_date.isoformat()))
 
         entry_data = EntryData(
             original_content=entry.original_content,

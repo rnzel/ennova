@@ -10,13 +10,12 @@ import shutil
 import sys
 import time
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date
 from pathlib import Path
 from collections.abc import Mapping
 from typing import Protocol, runtime_checkable
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
-PROJECT_DIR = BACKEND_DIR.parent
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
@@ -39,16 +38,17 @@ from app.ai.summaries import (
     InMemorySummaryStore,
     store_derived_summary,
 )
-from app.domain.diary import InMemoryEntryRepository, StoredEntry
-from app.domain.processing import PersonReference
+from app.domain.diary import StoredEntry
 from app.errors import AIServiceUnavailable, EnnovaError, GENERIC_PUBLIC_MESSAGE
 from app.policy import AppFacts, PrologAccessBridge
-from app.services.access_facts import build_app_facts
 from app.services.diary_service import DiaryService
 from app.services.grounded_qa import GroundedQAService
+from scripts.maria_fixture import (
+    OWNER_ID,
+    POLICY_PATH,
+    build_maria_fixture,
+)
 
-POLICY_PATH = PROJECT_DIR / "docs" / "grammar" / "sample_maria.policy"
-OWNER_ID = "owner-lola"
 MARIA_QUESTIONS: tuple[tuple[str, str], ...] = (
     ("existence", "Did he ever write about me?"),
     ("family", "What did he write about family?"),
@@ -239,68 +239,15 @@ class DemoFixture:
 
 def build_fixture() -> DemoFixture:
     """Build the fictional fixture without reading the clock or environment."""
-    service = DiaryService(InMemoryEntryRepository())
-    people = (
-        PersonReference("beneficiary-maria", "Maria"),
-        PersonReference("beneficiary-nora", "Nora"),
-    )
-    timestamps = tuple(
-        datetime(2026, 11, 14, hour, tzinfo=timezone.utc)
-        for hour in range(9, 14)
-    )
-    records = (
-        service.add_diary_entry(
-            OWNER_ID,
-            "e_maria",
-            "Lola remembers visiting [[Maria]] beside the garden.",
-            timestamps[0],
-            people,
-        ),
-        service.add_diary_entry(
-            OWNER_ID,
-            "e_family",
-            "The fictional family shared soup with [[Maria]]. #family",
-            timestamps[1],
-            people,
-        ),
-        service.add_diary_entry(
-            OWNER_ID,
-            "e_family_2",
-            "A quiet family supper at home. #family",
-            timestamps[2],
-            people,
-        ),
-        service.add_diary_entry(
-            OWNER_ID,
-            "e_business",
-            "Lola reviewed the orchard shop ledger. #business",
-            timestamps[3],
-            people,
-        ),
-        service.add_letter_entry(
-            OWNER_ID,
-            "e_letter",
-            "My dearest daughter, remember this small story about kindness.",
-            "To my daughter",
-            "Maria",
-            timestamps[4],
-            people,
-        ),
-    )
+    fixture = build_maria_fixture()
     summaries = InMemorySummaryStore()
     summarizer = FakeSummarizer()
-    for record in records:
+    for record in fixture.records:
         store_derived_summary(record, summarizer, summaries)
     return DemoFixture(
-        service,
-        records,
-        build_app_facts(
-            OWNER_ID,
-            records,
-            ("Maria", "Nora"),
-            death_triggered=True,
-            policy_frozen=True,
-        ),
+        fixture.service,
+        fixture.records,
+        fixture.app_facts,
         summaries,
     )
 
@@ -326,10 +273,6 @@ def _fake_client(question: str, asker: str, today: date) -> FakeModelClient:
         return FakeModelClient(
             (
                 ModelResponse("", tool_calls=(ToolCall("get_letter", {"title": "To my daughter"}),)),
-                ModelResponse(
-                    "My dearest daughter, remember this small story about kindness.",
-                    citation_ids=("e_letter",),
-                ),
             )
         )
     if asker == "maria" and "business" in folded:

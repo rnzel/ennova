@@ -34,6 +34,11 @@ ENNOVA is a personal AI diary and digital legacy app that keeps owner-written en
 9. Check the health endpoint: `http://localhost:5000/health`
 10. Optional demo script (no model needed): set `LLM_PROVIDER=fake`, then run `python scripts/demo_maria.py`.
 
+The backend verification plan is in [`docs/test-plan.md`](docs/test-plan.md).
+The Maria demo and backend acceptance tests share the fictional 20-entry Lola
+fixture in `backend/scripts/maria_fixture.py`; its daughter-letter release date
+is read from `docs/grammar/sample_maria.policy`.
+
 Use fictional data only. Never put a real person's diary or personal details in this project.
 
 ## Frontend setup

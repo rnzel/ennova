@@ -23,6 +23,7 @@ from app.services.access_facts import build_app_facts
 from app.services.diary_service import DiaryService
 from app.services.grounded_qa import GroundedQAService
 from scripts.demo_maria import OWNER_ID, POLICY_PATH, build_fixture
+from scripts.maria_fixture import LETTER_CONTENT
 
 ROOT = Path(__file__).parents[2]
 SCRIPT = ROOT / "backend" / "scripts" / "demo_maria.py"
@@ -62,7 +63,7 @@ def test_fake_letter_row_changes_with_custom_date(swipl_executable):
     after = _run_script("--today", "2040-05-01", swipl_executable=swipl_executable)
     assert before.returncode == after.returncode == 0
     assert "That letter will be available on 2040-05-01." in before.stdout
-    assert "My dearest daughter" in after.stdout
+    assert "Reply: " + LETTER_CONTENT in after.stdout
     assert LETTER_OF_WISHES_DISCLAIMER in before.stdout
     assert LETTER_OF_WISHES_DISCLAIMER in after.stdout
 
