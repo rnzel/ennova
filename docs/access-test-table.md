@@ -10,6 +10,10 @@ mentioned name `Secret`), `e_archive` (diary, tag `Archive`), and `e_letter`
 (letter titled `To my daughter`, tag `Letters`). Active registration includes
 `maria` and `nora`; death is triggered. Context variants only alter the noted
 fact. App-side names and tags are case-folded before they become Prolog facts.
+The broader backend verification approach is documented in
+[`test-plan.md`](test-plan.md). The demo, grounded-Q&A, and entry-store tests
+share fictional diary data from `backend/scripts/maria_fixture.py`; this table
+keeps compact synthetic facts for isolated Prolog rule cases.
 
 | Scenario | Asker | Entry ID | Level | Today | Policy | Context | Expected |
 |---|---|---|---|---|---|---|---|

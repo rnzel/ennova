@@ -17,6 +17,7 @@ from app.domain.diary import (
     StoredEntry,
 )
 from app.domain.processing import PersonReference
+from app.ai.tools import verify_entry
 from app.errors import AmbiguousName, TamperDetected
 from app.policy import (
     AccessRequest,
@@ -26,6 +27,7 @@ from app.policy import (
     parse,
 )
 from app.services import DiaryService, build_app_facts
+from scripts.maria_fixture import build_maria_fixture
 
 ROOT = Path(__file__).parents[2]
 MARIA_POLICY_PATH = ROOT / "docs" / "grammar" / "sample_maria.policy"
@@ -55,72 +57,20 @@ def maria_store_sample() -> MariaStoreSample:
     but does not mention her; e_business and e_letter contain no [[maria]] link;
     Nora is registered but has no protocol in the sample policy.
     """
-    owner_id = "owner-lola"
-    repository = InMemoryEntryRepository()
-    service = DiaryService(repository)
-    people = (
-        PersonReference("beneficiary-maria", "Maria"),
-        PersonReference("beneficiary-nora", "Nora"),
-    )
-    timestamps = tuple(
-        datetime(2026, 11, 14, hour, tzinfo=timezone.utc)
-        for hour in range(9, 14)
-    )
-    records = (
-        service.add_diary_entry(
-            owner_id,
-            "e_maria",
-            "Lola remembers visiting [[Maria]] beside the garden.",
-            timestamps[0],
-            people,
-        ),
-        service.add_diary_entry(
-            owner_id,
-            "e_family",
-            "The fictional family shared soup with [[Maria]]. #family",
-            timestamps[1],
-            people,
-        ),
-        service.add_diary_entry(
-            owner_id,
-            "e_family_2",
-            "A quiet family supper at home. #family",
-            timestamps[2],
-            people,
-        ),
-        service.add_diary_entry(
-            owner_id,
-            "e_business",
-            "Lola reviewed the orchard shop ledger. #business",
-            timestamps[3],
-            people,
-        ),
-        service.add_letter_entry(
-            owner_id,
-            "e_letter",
-            "My dearest daughter, remember this small story about kindness.",
-            "To my daughter",
-            "Maria",
-            timestamps[4],
-            people,
-        ),
-    )
-    app_facts = build_app_facts(
-        owner_id,
-        records,
-        ("Maria", "Nora"),
-        death_triggered=True,
-        policy_frozen=True,
-    )
+    fixture = build_maria_fixture()
     return MariaStoreSample(
-        owner_id=owner_id,
-        repository=repository,
-        service=service,
-        records=records,
-        app_facts=app_facts,
+        owner_id=fixture.owner_id,
+        repository=fixture.repository,
+        service=fixture.service,
+        records=fixture.records,
+        app_facts=fixture.app_facts,
         expected_maria_mentions=("e_maria", "e_family"),
         family_without_maria="e_family_2",
-        entries_without_maria_link=("e_business", "e_letter"),
+        entries_without_maria_link=tuple(
+            record.entry.entry_id
+            for record in fixture.records
+            if record.entry.entry_id not in {"e_maria", "e_family"}
+        ),
         registered_person_without_protocol="nora",
     )
 
@@ -182,16 +132,38 @@ def test_sample_documents_expected_mentions_tags_and_policy_recipient(
         assert "[[maria]]" not in by_id[entry_id].entry.original_content.casefold()
     assert "business" in by_id["e_business"].topics
 
+    diary_records = tuple(
+        record for record in sample.records if isinstance(record.entry, DiaryEntry)
+    )
+    assert len(diary_records) == 20
+    assert len({record.entry.created_at.year for record in diary_records}) >= 5
+    assert sum("family" in record.topics for record in diary_records) >= 8
+    assert sum("business" in record.topics for record in diary_records) >= 5
+
     letter = by_id["e_letter"].entry
     assert isinstance(letter, LetterEntry)
     assert letter.title == "To my daughter"
     assert letter.recipient == "Maria"
-    assert letter.release_date is None
+    assert letter.release_date == date(2040, 5, 1)
     assert sample.app_facts.letters == (("e_letter", "To my daughter"),)
     assert "nora" in sample.app_facts.registered_people
     assert "protocol nora:" not in MARIA_POLICY_PATH.read_text(
         encoding="utf-8"
     ).casefold()
+
+
+def test_letter_release_metadata_is_bound_to_the_entry_hash(
+    maria_store_sample: MariaStoreSample,
+):
+    letter_record = next(
+        record for record in maria_store_sample.records if record.entry.entry_id == "e_letter"
+    )
+    assert verify_entry(letter_record)
+
+    letter_record.entry._release_date = date(2040, 5, 2)
+
+    with pytest.raises(TamperDetected):
+        verify_entry(letter_record)
 
 
 def test_service_keeps_original_text_and_binds_hash_to_owner_entry_and_timestamp():
@@ -379,7 +351,7 @@ def test_reads_do_not_automatically_verify_the_chain(
     monkeypatch.setattr(sample.service, "verify", unexpected_verification)
 
     assert sample.service.get_entry(sample.owner_id, "e_maria") is not None
-    assert len(sample.service.list_entries(sample.owner_id)) == 5
+    assert len(sample.service.list_entries(sample.owner_id)) == len(sample.records)
 
 
 def test_build_app_facts_casefolds_names_and_tags_and_rejects_other_owners(

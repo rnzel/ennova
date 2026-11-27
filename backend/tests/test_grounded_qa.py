@@ -45,6 +45,12 @@ from app.policy import (
 from app.services.access_facts import build_app_facts
 from app.services.diary_service import DiaryService
 from app.services.grounded_qa import GroundedQAService
+from scripts.maria_fixture import (
+    LETTER_CONTENT,
+    LETTER_ENTRY_ID,
+    OWNER_ID,
+    build_maria_fixture,
+)
 
 ROOT = Path(__file__).parents[2]
 MARIA_POLICY = (ROOT / "docs" / "grammar" / "sample_maria.policy").read_text(
@@ -66,68 +72,18 @@ class GroundedSample:
 
 @pytest.fixture
 def grounded_sample(swipl_executable: str) -> GroundedSample:
-    owner_id = "owner-lola"
-    service = DiaryService(InMemoryEntryRepository())
-    people = (
-        PersonReference("beneficiary-maria", "Maria"),
-        PersonReference("beneficiary-nora", "Nora"),
-    )
-    timestamps = tuple(
-        datetime(2026, 11, 14, hour, tzinfo=timezone.utc)
-        for hour in range(9, 14)
-    )
-    records = (
-        service.add_diary_entry(
-            owner_id,
-            "e_maria",
-            "Lola remembers visiting [[Maria]] beside the garden.",
-            timestamps[0],
-            people,
-        ),
-        service.add_diary_entry(
-            owner_id,
-            "e_family",
-            "The fictional family shared soup with [[Maria]]. #family",
-            timestamps[1],
-            people,
-        ),
-        service.add_diary_entry(
-            owner_id,
-            "e_family_2",
-            "A quiet family supper at home. #family",
-            timestamps[2],
-            people,
-        ),
-        service.add_diary_entry(
-            owner_id,
-            "e_business",
-            "Lola reviewed the orchard shop ledger. #business",
-            timestamps[3],
-            people,
-        ),
-        service.add_letter_entry(
-            owner_id,
-            "e_letter",
-            "My dearest daughter, remember this small story about kindness.",
-            "To my daughter",
-            "Maria",
-            timestamps[4],
-            people,
-        ),
-    )
-    facts = build_app_facts(
-        owner_id,
-        records,
-        ("Maria", "Nora"),
-        death_triggered=True,
-        policy_frozen=True,
-    )
+    fixture = build_maria_fixture()
     summaries = InMemorySummaryStore()
     summarizer = FakeSummarizer()
-    for record in records:
+    for record in fixture.records:
         store_derived_summary(record, summarizer, summaries)
     return GroundedSample(
-        owner_id, service, records, facts, swipl_executable, summaries
+        OWNER_ID,
+        fixture.service,
+        fixture.records,
+        fixture.app_facts,
+        swipl_executable,
+        summaries,
     )
 
 
@@ -243,8 +199,8 @@ def test_six_maria_scenarios_end_to_end_with_scripted_model(
         "e_family_2",
     )
     assert tuple(citation.entry_date for citation in family.citations) == (
-        date(2026, 11, 14),
-        date(2026, 11, 14),
+        date(2018, 7, 21),
+        date(2019, 11, 3),
     )
     assert len(family_model.prompts) == 2
     family_messages = "\n".join(
@@ -266,6 +222,12 @@ def test_six_maria_scenarios_end_to_end_with_scripted_model(
     assert before_release.citations == ()
     assert before_release.disclaimer == LETTER_OF_WISHES_DISCLAIMER
     assert before_model.prompts == []
+    assert LETTER_CONTENT.casefold() not in "\n".join(
+        prompt.system_prompt
+        + "\n"
+        + "\n".join(message.content for message in prompt.messages)
+        for prompt in before_model.prompts
+    ).casefold()
     tool_results.clear()
 
     after_model = FakeModelClient(
@@ -276,10 +238,6 @@ def test_six_maria_scenarios_end_to_end_with_scripted_model(
                     ToolCall("get_letter", {"title": "To my daughter"}),
                 ),
             ),
-            ModelResponse(
-                "The letter says: remember this small story about kindness.",
-                citation_ids=("e_letter",),
-            ),
         )
     )
     after_release = _answer(
@@ -288,12 +246,15 @@ def test_six_maria_scenarios_end_to_end_with_scripted_model(
         after_model,
         today=date(2040, 5, 1),
     )
+    assert after_release.text == LETTER_CONTENT
     assert tuple(citation.entry_id for citation in after_release.citations) == (
-        "e_letter",
+        LETTER_ENTRY_ID,
     )
-    assert after_release.text == "The letter says: remember this small story about kindness."
+    assert tuple(citation.entry_date for citation in after_release.citations) == (
+        date(2026, 11, 15),
+    )
     assert after_release.disclaimer == LETTER_OF_WISHES_DISCLAIMER
-    assert len(after_model.prompts) == 2
+    assert len(after_model.prompts) == 1
     letter_prompt_text = "\n".join(
         prompt.system_prompt + "\n"
         + "\n".join(message.content for message in prompt.messages)
@@ -302,6 +263,7 @@ def test_six_maria_scenarios_end_to_end_with_scripted_model(
     letter_observed_output = (
         letter_prompt_text + "\n" + "\n".join(repr(result) for result in tool_results)
     ).casefold()
+    assert LETTER_CONTENT.casefold() not in letter_prompt_text.casefold()
     for restricted_secret in (
         "orchard shop ledger",
         "e_business",
@@ -855,7 +817,7 @@ def test_citations_drop_unpresented_ids_and_use_stored_dates(
     assert tuple(citation.entry_id for citation in result.citations) == (
         "e_family",
     )
-    assert result.citations[0].entry_date == date(2026, 11, 14)
+    assert result.citations[0].entry_date == date(2018, 7, 21)
 
 
 def test_unknown_and_malformed_tool_calls_are_ignored(
@@ -983,7 +945,7 @@ def test_all_permitted_entries_tampered_returns_tamper_message(
 ):
     sample = grounded_sample
     for record in sample.records:
-        if record.entry.entry_id in ("e_family", "e_family_2"):
+        if "family" in record.topics:
             record.entry._original_content = "tampered family entry"
     model = FakeModelClient(())
     only_family_policy = (

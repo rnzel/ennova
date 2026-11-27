@@ -70,6 +70,8 @@ def verify_entry(record: StoredEntry) -> bool:
         metadata.extend(
             (("title", entry.title), ("recipient", entry.recipient))
         )
+        if entry.release_date is not None:
+            metadata.append(("release_date", entry.release_date.isoformat()))
 
     expected_detail = {"entry_id": entry.entry_id}
     if (
