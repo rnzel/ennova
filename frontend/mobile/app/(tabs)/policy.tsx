@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
   },
   templateActive: {
     borderColor: colors.teal,
-    backgroundColor: '#E8F7F6',
+    backgroundColor: colors.cyan,
   },
   templateText: {
     color: colors.navy,
@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingVertical: 12,
     borderRadius: 11,
-    backgroundColor: '#D7EFF0',
+    backgroundColor: colors.cyan,
   },
   previewTitle: {
     marginTop: 12,

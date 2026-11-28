@@ -2,14 +2,14 @@
 // Paradigm: Functional (design tokens)
 
 export const colors = {
-  navy: '#073A5C',
-  teal: '#007A78',
-  cyan: '#C6F4EF',
-  canvas: '#F0F7F8',
+  navy: '#17243A',
+  teal: '#5266E5',
+  cyan: '#EEF0FF',
+  canvas: '#F8F9FC',
   surface: '#FFFFFF',
-  ink: '#163342',
-  muted: '#5B717A',
-  border: '#DCE8EB',
+  ink: '#28364C',
+  muted: '#68758A',
+  border: '#E1E5ED',
   success: '#E1F4EC',
   successInk: '#216650',
   warning: '#F9F0D9',

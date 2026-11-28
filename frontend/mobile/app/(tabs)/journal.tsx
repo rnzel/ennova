@@ -8,6 +8,7 @@ import { AppScreen } from '@/components/AppScreen'
 import { EntryRow } from '@/components/EntryRow'
 import { PageTitle } from '@/components/PageTitle'
 import { useAppData } from '@/context/AppDataProvider'
+import { useAuth } from '@/context/AuthProvider'
 import { colors, spacing } from '@/constants/theme'
 import type { EntryVisibility } from '@/types'
 
@@ -15,6 +16,7 @@ const filters: ('All' | EntryVisibility)[] = ['All', 'Private', 'Shared', 'Restr
 
 export default function JournalScreen() {
   const { entries, refreshEntries, entriesLoading, entriesError } = useAppData()
+  const { accountRole } = useAuth()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<(typeof filters)[number]>('All')
   const filtered = useMemo(
@@ -33,7 +35,14 @@ export default function JournalScreen() {
         title="Diary entries"
         description="Your private collection of memories, notes, and letters."
       />
-      <Link href="/entries/new" asChild>
+      {accountRole === 'beneficiary' ? (
+        <View style={styles.status}>
+          <Text style={styles.statusText}>
+            Shared memories are explored through answers controlled by the owner’s policy.
+          </Text>
+          <Link href="/assistant" style={styles.retryText}>Open assistant</Link>
+        </View>
+      ) : <Link href="/entries/new" asChild>
         <Pressable
           accessibilityRole="link"
           accessibilityLabel="Write a new entry"
@@ -41,7 +50,7 @@ export default function JournalScreen() {
         >
           <Text style={styles.newButtonText}>＋  Write a new entry</Text>
         </Pressable>
-      </Link>
+      </Link>}
       <TextInput
         accessibilityLabel="Search entries"
         onChangeText={setQuery}
@@ -82,10 +91,16 @@ export default function JournalScreen() {
       ) : null}
       <View style={styles.list}>
         {filtered.map((entry) => <EntryRow entry={entry} key={entry.id} />)}
-        {filtered.length === 0 && (
+        {!entriesLoading && !entriesError && filtered.length === 0 && accountRole !== 'beneficiary' && (
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>No entries found</Text>
-            <Text style={styles.emptyText}>Try a different search or visibility filter.</Text>
+            <Text style={styles.emptyTitle}>
+              {entries.length === 0 ? 'Your journal is empty' : 'No entries found'}
+            </Text>
+            <Text style={styles.emptyText}>
+              {entries.length === 0
+                ? 'Write a new entry to add your first memory.'
+                : 'Try a different search or visibility filter.'}
+            </Text>
           </View>
         )}
       </View>
@@ -157,7 +172,7 @@ const styles = StyleSheet.create({
   },
   filterActive: {
     borderColor: colors.teal,
-    backgroundColor: '#E8F7F6',
+    backgroundColor: colors.cyan,
   },
   filterText: {
     color: colors.muted,

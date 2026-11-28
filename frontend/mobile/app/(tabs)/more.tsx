@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
-    backgroundColor: '#E8F7F6',
+    backgroundColor: colors.cyan,
   },
   markerText: {
     color: colors.teal,

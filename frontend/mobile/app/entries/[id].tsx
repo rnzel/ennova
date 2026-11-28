@@ -112,9 +112,9 @@ const styles = StyleSheet.create({
     marginVertical: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#D8EEEC',
+    borderColor: colors.border,
     borderRadius: 11,
-    backgroundColor: '#F0FAF9',
+    backgroundColor: colors.cyan,
   },
   apiNoticeTitle: {
     color: colors.navy,

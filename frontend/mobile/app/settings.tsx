@@ -84,6 +84,7 @@ export default function SettingsScreen() {
           style={styles.signOut}
           onPress={() => {
             logout()
+            router.dismissAll()
             router.replace('/login')
           }}
         >
