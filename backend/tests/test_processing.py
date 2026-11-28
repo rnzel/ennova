@@ -217,6 +217,91 @@ def test_hash_chain_detects_digest_and_predecessor_link_tampering():
         verify_hash_chain(bad_link)
 
 
+def test_hash_chain_detects_changed_entry_content():
+    entry = EntryData("Original.", datetime(2026, 11, 12, tzinfo=timezone.utc))
+    chain = hash_chain((entry,))
+    changed = replace(
+        chain[0], entry=replace(chain[0].entry, original_content="Changed.")
+    )
+
+    with pytest.raises(TamperDetected) as error:
+        verify_hash_chain((changed,))
+
+    assert error.value.detail == {"reason": "entry hash mismatch", "position": 0}
+    assert "position 0" in str(error.value)
+    assert "entry hash mismatch" in str(error.value)
+
+
+def test_hash_chain_detects_removed_interior_entry():
+    entries = tuple(
+        EntryData(text, datetime(2026, 11, day, tzinfo=timezone.utc))
+        for day, text in ((12, "First."), (13, "Removed."), (14, "Last."))
+    )
+    chain = hash_chain(entries)
+
+    with pytest.raises(TamperDetected) as error:
+        verify_hash_chain((chain[0], chain[2]))
+
+    assert error.value.detail == {
+        "reason": "hash-chain link mismatch",
+        "position": 1,
+    }
+
+
+def test_hash_chain_detects_reordered_entries():
+    entries = (
+        EntryData("First.", datetime(2026, 11, 12, tzinfo=timezone.utc)),
+        EntryData("Second.", datetime(2026, 11, 13, tzinfo=timezone.utc)),
+    )
+    chain = hash_chain(entries)
+
+    with pytest.raises(TamperDetected) as error:
+        verify_hash_chain(tuple(reversed(chain)))
+
+    assert error.value.detail == {
+        "reason": "hash-chain link mismatch",
+        "position": 0,
+    }
+
+
+def test_hash_chain_reports_only_the_first_broken_link():
+    entries = tuple(
+        EntryData(text, datetime(2026, 11, day, tzinfo=timezone.utc))
+        for day, text in ((12, "First."), (13, "Second."), (14, "Third."))
+    )
+    chain = hash_chain(entries)
+    tampered = (
+        chain[0],
+        replace(chain[1], previous_hash="bad-link"),
+        replace(chain[2], previous_hash="another-bad-link"),
+    )
+
+    with pytest.raises(TamperDetected) as error:
+        verify_hash_chain(tampered)
+
+    assert error.value.detail == {
+        "reason": "hash-chain link mismatch",
+        "position": 1,
+    }
+
+
+def test_hash_chain_detects_modified_previous_hash():
+    entries = (
+        EntryData("First.", datetime(2026, 11, 12, tzinfo=timezone.utc)),
+        EntryData("Second.", datetime(2026, 11, 13, tzinfo=timezone.utc)),
+    )
+    chain = hash_chain(entries)
+    tampered = (chain[0], replace(chain[1], previous_hash="wrong-previous-hash"))
+
+    with pytest.raises(TamperDetected) as error:
+        verify_hash_chain(tampered)
+
+    assert error.value.detail == {
+        "reason": "hash-chain link mismatch",
+        "position": 1,
+    }
+
+
 def test_processing_modules_have_no_io_clock_random_flask_or_database_dependencies():
     processing_dir = Path(__file__).parents[1] / "app" / "domain" / "processing"
     prohibited_imports = {

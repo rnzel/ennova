@@ -342,6 +342,26 @@ def test_verify_checks_expected_head_and_detects_chain_tampering(
         sample.service.verify(sample.owner_id)
 
 
+def test_service_verify_detects_terminal_removal_against_trusted_head():
+    repository = InMemoryEntryRepository()
+    service = DiaryService(repository)
+    timestamp = datetime(2026, 11, 14, 10, tzinfo=timezone.utc)
+    service.add_diary_entry("owner-lola", "first", "First.", timestamp)
+    service.add_diary_entry("owner-lola", "last", "Last.", timestamp)
+    trusted_head = service.head_hash("owner-lola")
+
+    del repository._entries["owner-lola"][-1]
+
+    with pytest.raises(TamperDetected) as error:
+        service.verify("owner-lola", expected_head=trusted_head)
+
+    assert error.value.detail == {
+        "reason": "unexpected chain head",
+        "expected": trusted_head,
+        "actual": repository.head_hash("owner-lola"),
+    }
+
+
 def test_reads_do_not_automatically_verify_the_chain(
     maria_store_sample: MariaStoreSample, monkeypatch: pytest.MonkeyPatch
 ):
