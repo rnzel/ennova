@@ -9,12 +9,13 @@ let authContext: ReturnType<typeof useAuth> | null = null
 
 function AuthProbe() {
   const context = useAuth()
-  const { accessToken, isLoading } = context
+  const { accessToken, username, isLoading } = context
   authContext = context
 
   return (
     <View>
       <Text>{accessToken ? 'Authenticated' : 'Signed out'}</Text>
+      <Text>{username ?? 'No username'}</Text>
       <Text>{isLoading ? 'Loading' : 'Ready'}</Text>
     </View>
   )
@@ -46,11 +47,13 @@ describe('AuthProvider', () => {
       await authContext?.login('sample-user', 'fictional-password')
     })
     expect(view.getByText('Authenticated')).toBeTruthy()
+    expect(view.getByText('sample-user')).toBeTruthy()
     expect(view.getByText('Ready')).toBeTruthy()
 
     await act(async () => {
       authContext?.logout()
     })
     expect(view.getByText('Signed out')).toBeTruthy()
+    expect(view.getByText('No username')).toBeTruthy()
   })
 })

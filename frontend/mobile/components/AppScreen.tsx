@@ -8,25 +8,32 @@ import { colors, spacing } from '@/constants/theme'
 
 type AppScreenProps = PropsWithChildren<{
   scroll?: boolean
+  backgroundColor?: string
+  compact?: boolean
 }>
 
-export function AppScreen({ children, scroll = true }: AppScreenProps) {
+export function AppScreen({
+  children,
+  scroll = true,
+  backgroundColor = colors.canvas,
+  compact = false,
+}: AppScreenProps) {
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
+    <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboard}
       >
         {scroll ? (
           <ScrollView
-            contentContainerStyle={styles.content}
+            contentContainerStyle={[styles.content, compact && styles.compactContent]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
             {children}
           </ScrollView>
         ) : (
-          <View style={styles.content}>{children}</View>
+          <View style={[styles.content, compact && styles.compactContent]}>{children}</View>
         )}
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -47,5 +54,11 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: spacing.xl,
     gap: spacing.md,
+  },
+  compactContent: {
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 24,
+    gap: 16,
   },
 })

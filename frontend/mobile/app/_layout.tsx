@@ -8,6 +8,7 @@ import { AppDataProvider } from '@/context/AppDataProvider'
 import { colors } from '@/constants/theme'
 import { AuthProvider } from '@/context/AuthProvider'
 import { PolicyPublishManager } from '@/components/PolicyPublishManager'
+import { FloatingChatWidget } from '@/components/FloatingChatWidget'
 
 export default function RootLayout() {
   return (
@@ -31,6 +32,7 @@ export default function RootLayout() {
             <Stack.Screen name="settings" />
             <Stack.Screen name="beneficiary" />
           </Stack>
+          <FloatingChatWidget />
         </View>
       </AppDataProvider>
     </AuthProvider>

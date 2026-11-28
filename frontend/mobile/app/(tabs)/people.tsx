@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   invitationCode: {
     padding: 12,
     borderRadius: 10,
-    backgroundColor: '#EFF8F8',
+    backgroundColor: colors.cyan,
     color: colors.navy,
     fontSize: 16,
     fontWeight: '800',
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 19,
-    backgroundColor: '#D7EFF0',
+    backgroundColor: colors.cyan,
   },
   avatarText: {
     color: colors.navy,

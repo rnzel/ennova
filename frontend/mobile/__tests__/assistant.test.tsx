@@ -33,7 +33,7 @@ describe('AssistantScreen', () => {
           ok: true,
           status: 200,
           text: async () => JSON.stringify({
-            access_token: 'fictional-token',
+            access_token: 'header.eyJyb2xlIjoib3duZXIifQ.signature',
             token_type: 'Bearer',
           }),
         } as Response

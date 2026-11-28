@@ -48,7 +48,7 @@ type AppData = {
 const AppDataContext = createContext<AppData | null>(null)
 
 export function AppDataProvider({ children }: PropsWithChildren) {
-  const { accessToken, clearRejectedSession } = useAuth()
+  const { accessToken, accountRole, clearRejectedSession } = useAuth()
   const [entries, setEntries] = useState(initialEntries)
   const [beneficiaries, setBeneficiaries] = useState(initialBeneficiaries)
   const [policy, setPolicy] = useState(accessToken ? '' : initialPolicy)
@@ -67,6 +67,16 @@ export function AppDataProvider({ children }: PropsWithChildren) {
 
   const refreshEntries = async () => {
     if (!accessToken) return
+    if (accountRole === 'beneficiary') {
+      setEntries([])
+      setEntriesError('')
+      return
+    }
+    if (accountRole !== 'owner') {
+      setEntries([])
+      setEntriesError('Your account access could not be confirmed. Please sign in again.')
+      return
+    }
     setEntriesLoading(true)
     setEntriesError('')
     try {
@@ -108,7 +118,7 @@ export function AppDataProvider({ children }: PropsWithChildren) {
     if (accessToken) {
       void refreshEntries()
     }
-  }, [accessToken])
+  }, [accessToken, accountRole])
 
   const addEntry = (entry: NewEntry) => {
     setEntries((current) => [

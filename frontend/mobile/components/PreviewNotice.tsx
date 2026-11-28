@@ -20,9 +20,9 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 13,
     borderWidth: 1,
-    borderColor: '#D5ECEA',
+    borderColor: colors.border,
     borderRadius: 13,
-    backgroundColor: '#F2FBFA',
+    backgroundColor: colors.cyan,
   },
   icon: {
     width: 20,

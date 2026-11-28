@@ -18,6 +18,8 @@ import {
 
 type AuthContextValue = {
   account: ApiAccount | null
+  username: string | null
+  accountRole: ApiAccount['role'] | null
   accessToken: string | null
   isLoading: boolean
   login: (username: string, password: string) => Promise<void>
@@ -36,6 +38,8 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [account, setAccount] = useState<ApiAccount | null>(null)
+  const [username, setUsername] = useState<string | null>(null)
+  const [accountRole, setAccountRole] = useState<ApiAccount['role'] | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -48,6 +52,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
       })
       setAccessToken(response.access_token)
       setAccount(null)
+      setUsername(username.trim())
+      setAccountRole(readSessionRole(response.access_token))
     } finally {
       setIsLoading(false)
     }
@@ -70,6 +76,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
         body: { username, password },
       })
       setAccount(registered)
+      setUsername(registered.username)
+      setAccountRole(registered.role)
       setAccessToken(response.access_token)
     } finally {
       setIsLoading(false)
@@ -99,6 +107,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
         body: { username, password },
       })
       setAccount(registered)
+      setUsername(registered.username)
+      setAccountRole(registered.role)
       setAccessToken(response.access_token)
     } finally {
       setIsLoading(false)
@@ -108,6 +118,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const logout = () => {
     setAccessToken(null)
     setAccount(null)
+    setUsername(null)
+    setAccountRole(null)
   }
 
   const clearRejectedSession = (error: unknown) => {
@@ -122,6 +134,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     <AuthContext.Provider
       value={{
         account,
+        username,
+        accountRole,
         accessToken,
         isLoading,
         login,
@@ -134,6 +148,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
       {children}
     </AuthContext.Provider>
   )
+}
+
+function readSessionRole(token: string): ApiAccount['role'] | null {
+  try {
+    const encodedClaims = token.split('.')[1]
+    if (!encodedClaims) return null
+    const base64 = encodedClaims.replace(/-/g, '+').replace(/_/g, '/')
+    const claims = JSON.parse(atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '=')))
+    return claims.role === 'owner' || claims.role === 'beneficiary' ? claims.role : null
+  } catch {
+    return null
+  }
 }
 
 export function useAuth() {
