@@ -19,6 +19,7 @@ class DiaryEntryRecord(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), nullable=False)
     title = db.Column(db.Text)
     recipient = db.Column(db.Text)
+    release_date = db.Column(db.Date)
     previous_hash = db.Column(db.String(64), nullable=False)
     digest = db.Column(db.String(64), nullable=False)
     names = db.relationship("DiaryEntryNameRecord", cascade="all, delete-orphan", order_by="DiaryEntryNameRecord.ordinal")

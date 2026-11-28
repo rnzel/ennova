@@ -200,6 +200,7 @@ def test_duplicate_letter_titles_are_rejected_before_hash_chain_changes(
         "To Maria",
         "Maria",
         datetime(2026, 11, 14, 10, tzinfo=timezone.utc),
+        release_date=date(2040, 5, 1),
     )
     records_before = service.list_entries(owner_id)
     head_before = service.head_hash(owner_id)
@@ -212,6 +213,7 @@ def test_duplicate_letter_titles_are_rejected_before_hash_chain_changes(
             "tO mArIa",
             "Maria",
             datetime(2026, 11, 14, 11, tzinfo=timezone.utc),
+            release_date=date(2040, 5, 1),
         )
 
     assert service.list_entries(owner_id) == records_before == (first,)

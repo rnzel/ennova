@@ -120,6 +120,7 @@ def test_letter_disclaimer_is_single_definition_and_omitted_for_diary_entries():
             "content": "A fictional letter.",
             "title": "A fictional letter title",
             "recipient": "maria",
+            "release_date": "2040-05-01",
         },
     )
     listed = client.get("/entries", headers=auth(token)).get_json()["entries"]
@@ -237,6 +238,7 @@ def test_maria_http_scenario_release_boundary_and_nora_neutral(swipl_executable)
             "content": "A message for Maria.",
             "title": "To my daughter",
             "recipient": "maria",
+            "release_date": "2040-05-01",
         },
     )
     policy = (

@@ -24,6 +24,15 @@ from app.domain.processing import (
 from app.errors import TamperDetected
 
 
+def _combined_tags(content: str, tags: tuple[str, ...]) -> tuple[str, ...]:
+    """Combine validated caller tags with tags embedded in the entry text."""
+    if not isinstance(tags, (tuple, list)) or any(
+        not isinstance(tag, str) or not tag.strip() for tag in tags
+    ):
+        raise TypeError("tags must be a sequence of non-empty strings.")
+    return tuple(dict.fromkeys((*tags, *extract_topics(content))))
+
+
 class DiaryService:
     """Coordinate append-only diary storage and pure entry processing."""
 
@@ -40,10 +49,13 @@ class DiaryService:
         original_content: str,
         timestamp: datetime,
         people: tuple[PersonReference, ...] = (),
+        *,
+        tags: tuple[str, ...] = (),
     ) -> StoredEntry:
         """Create and append a diary entry using the caller-supplied timestamp."""
         self._validate_timestamp(timestamp)
-        entry = DiaryEntry(entry_id, timestamp, original_content)
+        entry_tags = _combined_tags(original_content, tags)
+        entry = DiaryEntry(entry_id, timestamp, original_content, entry_tags)
         return self._add_entry(owner_id, entry, people)
 
     def add_letter_entry(
@@ -56,24 +68,27 @@ class DiaryService:
         timestamp: datetime,
         people: tuple[PersonReference, ...] = (),
         *,
-        release_date: date | None = None,
+        release_date: date,
+        tags: tuple[str, ...] = (),
     ) -> StoredEntry:
         """Append a letter with descriptive release metadata.
 
-        Authorization remains policy-based; ``release_date`` records the
-        fixture or owner-supplied date and never grants access by itself.
+        Authorization remains policy-based; ``release_date`` records a required
+        date and never grants access by itself.
         """
         self._validate_timestamp(timestamp)
         if not isinstance(owner_id, str) or not owner_id.strip():
             raise ValueError("owner_id must be a non-empty string.")
         # This metadata is descriptive; Prolog policy remains authoritative.
+        entry_tags = _combined_tags(original_content, tags)
         entry = LetterEntry(
             entry_id,
             timestamp,
             original_content,
             title,
             recipient,
-            release_date=release_date,
+            release_date,
+            entry_tags,
         )
         title_key = entry.title.casefold()
         if any(
@@ -131,7 +146,7 @@ class DiaryService:
             raise ValueError("owner_id must be a non-empty string.")
         normalized_content = normalize(entry.original_content)
         names = extract_names(normalized_content, people)
-        topics = extract_topics(normalized_content)
+        topics = tuple(dict.fromkeys((*entry.tags, *extract_topics(normalized_content))))
 
         metadata = [
             ("entry_id", entry.entry_id),
@@ -144,8 +159,7 @@ class DiaryService:
             metadata.extend(
                 (("title", entry.title), ("recipient", entry.recipient))
             )
-            if entry.release_date is not None:
-                metadata.append(("release_date", entry.release_date.isoformat()))
+            metadata.append(("release_date", entry.release_date.isoformat()))
 
         entry_data = EntryData(
             original_content=entry.original_content,

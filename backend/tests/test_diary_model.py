@@ -21,7 +21,7 @@ from app.domain.diary import (
 
 def test_entry_hierarchy_and_polymorphic_kind():
     created_at = datetime(2026, 11, 12, tzinfo=timezone.utc)
-    diary = DiaryEntry("diary-1", created_at, "A diary entry.")
+    diary = DiaryEntry("diary-1", created_at, "A diary entry.", ("family",))
     letter = LetterEntry(
         "letter-1",
         created_at,
@@ -29,6 +29,7 @@ def test_entry_hierarchy_and_polymorphic_kind():
         "A note",
         "Maria",
         date(2040, 5, 1),
+        ("family", "letter"),
     )
 
     assert isinstance(diary, Entry)
@@ -38,6 +39,13 @@ def test_entry_hierarchy_and_polymorphic_kind():
     assert letter.title == "A note"
     assert letter.recipient == "Maria"
     assert letter.release_date == date(2040, 5, 1)
+    assert diary.tags == ("family",)
+    assert letter.tags == ("family", "letter")
+    mixed: tuple[Entry, ...] = (diary, letter)
+    descriptions = tuple(entry.describe() for entry in mixed)
+    assert descriptions[0].startswith("Diary entry from 2026-11-12")
+    assert descriptions[1].startswith("Letter entry from 2026-11-12")
+    assert all("A diary entry." not in entry.summarize() for entry in mixed)
     with pytest.raises(TypeError):
         Entry("entry-1", created_at, "Cannot instantiate an abstract entry.")
 
@@ -51,11 +59,24 @@ def test_entry_content_and_metadata_are_read_only():
         entry.entry_id = "changed-id"
 
 
+def test_letter_requires_recipient_and_release_date_and_rejects_bad_tags():
+    created_at = datetime(2026, 11, 12, tzinfo=timezone.utc)
+    with pytest.raises(TypeError):
+        LetterEntry("letter", created_at, "Text", "Title", "Maria")
+    with pytest.raises(ValueError, match="recipient"):
+        LetterEntry("letter", created_at, "Text", "Title", " ", date(2040, 5, 1))
+    with pytest.raises(TypeError, match="release_date"):
+        LetterEntry("letter", created_at, "Text", "Title", "Maria", None)
+    with pytest.raises(TypeError, match="tags"):
+        DiaryEntry("diary", created_at, "Text", ("valid", 3))
+
+
 def test_vault_appends_retrieves_and_returns_immutable_snapshots():
     vault = Vault()
-    first = DiaryEntry("diary-1", datetime(2026, 11, 12), "First.")
+    first = DiaryEntry("diary-1", datetime(2026, 11, 12), "First.", ("family",))
     second = LetterEntry(
-        "letter-1", datetime(2026, 11, 13), "Second.", "Title", "Maria"
+        "letter-1", datetime(2026, 11, 13), "Second.", "Title", "Maria",
+        date(2040, 5, 1), ("family",)
     )
 
     vault.append(first)
