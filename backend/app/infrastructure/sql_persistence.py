@@ -27,10 +27,15 @@ def _stored(row):
     metadata.extend(("name", item.name) for item in row.names)
     metadata.extend(("topic", item.topic) for item in row.topics)
     if row.kind == "letter":
-        metadata.extend((("title", row.title), ("recipient", row.recipient)))
+        if row.release_date is None:
+            raise ValueError("Stored letter is missing its required release date.")
+        metadata.extend((("title", row.title), ("recipient", row.recipient),
+                         ("release_date", row.release_date.isoformat())))
     data = EntryData(row.content, timestamp, tuple(metadata))
-    entry = (LetterEntry(row.entry_id, timestamp, row.content, row.title, row.recipient)
-             if row.kind == "letter" else DiaryEntry(row.entry_id, timestamp, row.content))
+    tags = tuple(x.topic for x in row.topics)
+    entry = (LetterEntry(row.entry_id, timestamp, row.content, row.title, row.recipient,
+                         row.release_date, tags)
+             if row.kind == "letter" else DiaryEntry(row.entry_id, timestamp, row.content, tags))
     return StoredEntry(row.owner_id, entry, tuple(x.name for x in row.names),
                        tuple(x.topic for x in row.topics),
                        ChainedEntry(data, row.previous_hash, row.digest))
@@ -61,6 +66,7 @@ class SQLAlchemyEntryRepository(EntryRepository):
                 source_timestamp=record.entry.created_at.isoformat(),
                 created_at=record.entry.created_at, title=getattr(record.entry, "title", None),
                 recipient=getattr(record.entry, "recipient", None),
+                release_date=getattr(record.entry, "release_date", None),
                 previous_hash=record.chain_entry.previous_hash, digest=record.chain_entry.digest)
             row.names = [DiaryEntryNameRecord(ordinal=i, name=x) for i, x in enumerate(record.names)]
             row.topics = [DiaryEntryTopicRecord(ordinal=i, topic=x) for i, x in enumerate(record.topics)]

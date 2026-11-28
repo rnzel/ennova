@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import importlib.util
 from pathlib import Path
 
@@ -50,6 +50,22 @@ def test_diary_rows_reconstruct_hash_and_isolate_owner(sql_app):
         assert repo.get("other-owner", "entry-1") is None
         assert verify_hash_chain(tuple(x.chain_entry for x in repo.list_for_owner("owner-a")))
         assert created.chain_entry.digest == repo.head_hash("owner-a")
+
+
+def test_letter_release_date_tags_and_hash_round_trip(sql_app):
+    with sql_app.app_context():
+        repo = SQLAlchemyEntryRepository()
+        service = DiaryService(repo)
+        release = date(2040, 5, 1)
+        service.add_letter_entry(
+            "owner-a", "letter-1", "A letter #family", "To Maria", "Maria",
+            datetime(2025, 3, 1, 12, 30, tzinfo=timezone.utc),
+            release_date=release,
+        )
+        loaded = repo.get("owner-a", "letter-1")
+        assert loaded.entry.release_date == release
+        assert loaded.entry.tags == ("family",)
+        assert verify_hash_chain(tuple(x.chain_entry for x in repo.list_for_owner("owner-a")))
 
 
 def test_access_state_summaries_and_owner_context_are_durable(sql_app):

@@ -59,10 +59,14 @@ classDiagram
         -str _entry_id
         -datetime _created_at
         -str _original_content
+        -tuple~str~ _tags
         +entry_id str
         +created_at datetime
         +original_content str
+        +tags tuple~str~
         +kind str
+        +describe() str
+        +summarize() str
     }
     class DiaryEntry {
         +kind str
@@ -70,10 +74,10 @@ classDiagram
     class LetterEntry {
         -str _title
         -str _recipient
-        -date _release_date
+        -date _release_date (required)
         +title str
-        +recipient str
-        +release_date date
+        +recipient str (required)
+        +release_date date (required)
         +kind str
     }
     class StoredEntry {

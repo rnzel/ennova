@@ -110,6 +110,7 @@ export default function NewEntryScreen() {
             ? {
                 title: trimmedTitle,
                 recipient: trimmedRecipient,
+                release_date: releaseDate,
               }
             : {}),
         },
@@ -190,7 +191,7 @@ export default function NewEntryScreen() {
               value={releaseDate}
             />
             <Text style={styles.helpText}>
-              A release date is stored in the complete policy source, not on the letter entry.
+              The entry records this date; release access still depends on the policy.
             </Text>
             {isPastReleaseDate(releaseDate) ? (
               <Text accessibilityRole="alert" style={styles.warningText}>
@@ -340,7 +341,7 @@ const styles = StyleSheet.create({
   },
   choiceSelected: {
     borderColor: colors.teal,
-    backgroundColor: '#E8F7F6',
+    backgroundColor: colors.cyan,
   },
   choiceText: {
     color: colors.muted,
@@ -366,7 +367,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     padding: 10,
     borderRadius: 10,
-    backgroundColor: '#EEF7F7',
+    backgroundColor: colors.cyan,
     color: '#426C74',
     fontSize: 11,
     lineHeight: 16,

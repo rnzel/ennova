@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import ast
 from dataclasses import FrozenInstanceError, replace
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -87,6 +87,7 @@ def test_light_fix_letter_preserves_digest_and_letter_behavior():
         "To Maria",
         "Maria",
         datetime(2026, 11, 17, tzinfo=timezone.utc),
+        release_date=date(2040, 5, 1),
     )
     original = letter.entry.original_content
     digest = letter.chain_entry.digest

@@ -25,10 +25,11 @@ def _require_nonempty(value: str, field_name: str) -> str:
 class Entry(ABC):
     """Base class for an original diary or letter entry."""
 
-    __slots__ = ("_entry_id", "_created_at", "_original_content")
+    __slots__ = ("_entry_id", "_created_at", "_original_content", "_tags")
 
     def __init__(
-        self, entry_id: str, created_at: datetime, original_content: str
+        self, entry_id: str, created_at: datetime, original_content: str,
+        tags: tuple[str, ...] = (),
     ) -> None:
         """Create an entry using explicit identity, timestamp, and original content."""
         self._entry_id = _require_nonempty(entry_id, "entry_id")
@@ -36,8 +37,13 @@ class Entry(ABC):
             raise TypeError("created_at must be a datetime.")
         if not isinstance(original_content, str):
             raise TypeError("original_content must be a string.")
+        if not isinstance(tags, (tuple, list)) or any(
+            not isinstance(tag, str) or not tag.strip() for tag in tags
+        ):
+            raise TypeError("tags must be a sequence of non-empty strings.")
         self._created_at = created_at
         self._original_content = original_content
+        self._tags = tuple(dict.fromkeys(tag.casefold() for tag in tags))
 
     @property
     def entry_id(self) -> str:
@@ -53,6 +59,20 @@ class Entry(ABC):
     def original_content(self) -> str:
         """Return the preserved original text."""
         return self._original_content
+
+    @property
+    def tags(self) -> tuple[str, ...]:
+        """Return normalized immutable tags attached to this entry."""
+        return self._tags
+
+    def describe(self) -> str:
+        """Describe entry metadata without exposing its protected text."""
+        tag_text = ", ".join(self.tags) if self.tags else "no tags"
+        return f"{self.kind.title()} entry from {self.created_at.date().isoformat()} ({tag_text})."
+
+    def summarize(self) -> str:
+        """Return a content-free metadata summary; access-controlled text stays private."""
+        return f"{self.describe()} Content is {len(self.original_content)} characters."
 
     @property
     @abstractmethod
@@ -83,16 +103,15 @@ class LetterEntry(Entry):
         original_content: str,
         title: str,
         recipient: str,
-        release_date: date | None = None,
+        release_date: date,
+        tags: tuple[str, ...] = (),
     ) -> None:
-        """Create a letter with explicit recipient and optional release date."""
-        super().__init__(entry_id, created_at, original_content)
+        """Create a letter with explicit recipient and required release date."""
+        super().__init__(entry_id, created_at, original_content, tags)
         self._title = _require_nonempty(title, "title")
         self._recipient = _require_nonempty(recipient, "recipient")
-        if release_date is not None and (
-            not isinstance(release_date, date) or isinstance(release_date, datetime)
-        ):
-            raise TypeError("release_date must be a date or None.")
+        if not isinstance(release_date, date) or isinstance(release_date, datetime):
+            raise TypeError("release_date must be a date.")
         self._release_date = release_date
 
     @property
@@ -106,8 +125,8 @@ class LetterEntry(Entry):
         return self._recipient
 
     @property
-    def release_date(self) -> date | None:
-        """Return the optional release date."""
+    def release_date(self) -> date:
+        """Return the required release date."""
         return self._release_date
 
     @property

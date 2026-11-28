@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from datetime import date
 
 from flask import Blueprint, current_app, jsonify
 
@@ -47,6 +48,10 @@ def create_entry():
     service = current_app.extensions["diary_service"]
     try:
         if body.get("kind") == "letter":
+            release_date_raw = body["release_date"]
+            if not isinstance(release_date_raw, str):
+                raise ValueError("release_date must be an ISO date string.")
+            release_date = date.fromisoformat(release_date_raw)
             record = service.add_letter_entry(
                 account.owner_id,
                 entry_id,
@@ -54,6 +59,7 @@ def create_entry():
                 body["title"],
                 body["recipient"],
                 clock(),
+                release_date=release_date,
             )
         elif body.get("kind") == "diary":
             record = service.add_diary_entry(

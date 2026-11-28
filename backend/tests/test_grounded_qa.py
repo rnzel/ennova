@@ -454,6 +454,7 @@ def test_unavailable_letter_titles_are_identical_and_never_reach_model(
         "Roberto",
         datetime(2026, 11, 14, 14, tzinfo=timezone.utc),
         people,
+        release_date=date(2040, 5, 1),
     )
     nora_letter = sample.service.add_letter_entry(
         sample.owner_id,
@@ -463,6 +464,7 @@ def test_unavailable_letter_titles_are_identical_and_never_reach_model(
         "Nora",
         datetime(2026, 11, 14, 15, tzinfo=timezone.utc),
         people,
+        release_date=date(2040, 5, 1),
     )
     records = sample.records + (roberto_letter, nora_letter)
     app_facts = build_app_facts(
@@ -1033,6 +1035,7 @@ def test_different_names_tags_owner_and_letter_title_keep_access_behavior(
             "Leo",
             timestamps[3],
             people,
+            release_date=date(2040, 5, 1),
         ),
     )
     summaries = InMemorySummaryStore()
