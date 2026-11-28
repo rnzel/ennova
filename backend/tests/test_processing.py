@@ -11,6 +11,7 @@ from app.domain.processing import (
     AmbiguousName,
     ChainedEntry,
     CorrectionRule,
+    DiffSegment,
     EntryData,
     PersonReference,
     TamperDetected,
@@ -34,6 +35,10 @@ def test_normalize_canonicalizes_unicode_and_newlines_only():
     assert source == "Cafe\u0301\r\nSecond line\rThird line  "
 
 
+def test_normalize_returns_empty_text_for_empty_input():
+    assert normalize("") == ""
+
+
 def test_extract_names_reads_links_and_known_aliases_in_order():
     people = (
         PersonReference("p1", "Maria Santos", ("Maria",)),
@@ -45,6 +50,14 @@ def test_extract_names_reads_links_and_known_aliases_in_order():
     )
 
     assert result == ("Maria Santos", "Lola Reyes")
+
+
+def test_extract_names_returns_empty_result_for_empty_text():
+    assert extract_names("") == ()
+
+
+def test_extract_names_deduplicates_repeated_identical_references():
+    assert extract_names("I met [[Alex]] and later saw [[Alex]].") == ("Alex",)
 
 
 def test_extract_names_returns_unresolved_links_and_raises_for_ambiguous_alias():
@@ -65,6 +78,10 @@ def test_extract_topics_casefolds_and_deduplicates_in_first_seen_order():
     )
 
 
+def test_extract_topics_returns_empty_result_for_empty_text():
+    assert extract_topics("") == ()
+
+
 def test_correct_applies_immutable_rules_in_order_and_preserves_simple_case():
     rules = (
         CorrectionRule("teh", "the"),
@@ -78,6 +95,12 @@ def test_correct_applies_immutable_rules_in_order_and_preserves_simple_case():
     assert source == "Teh note says alot, but the other word is untouched."
     with pytest.raises(FrozenInstanceError):
         rules[0].source = "changed"
+
+
+def test_correct_returns_empty_text_for_empty_input_with_rules():
+    rules = (CorrectionRule("teh", "the"),)
+
+    assert correct("", rules) == ""
 
 
 def test_diff_segments_reconstruct_both_original_and_updated_text():
@@ -96,6 +119,18 @@ def test_diff_segments_reconstruct_both_original_and_updated_text():
     assert reconstructed_after == after
     assert any(segment.operation == "delete" for segment in segments)
     assert any(segment.operation == "insert" for segment in segments)
+
+
+def test_diff_returns_no_segments_for_two_empty_texts():
+    assert diff("", "") == ()
+
+
+def test_diff_represents_empty_to_text_as_insertion():
+    assert diff("", "new text") == (DiffSegment("insert", "new text"),)
+
+
+def test_diff_represents_text_to_empty_as_deletion():
+    assert diff("old text", "") == (DiffSegment("delete", "old text"),)
 
 
 def test_entry_data_is_frozen_and_metadata_is_immutable():
