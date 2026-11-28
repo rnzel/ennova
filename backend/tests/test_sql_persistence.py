@@ -18,7 +18,12 @@ from app.ai.model_summaries import SummaryArtifact
 from app.policy import parse
 from app.services.api_state import AuditRecord
 from app.services.diary_service import DiaryService
-from app.domain.processing import verify_hash_chain
+from app.domain.processing import PersonReference, verify_hash_chain
+from app.models.application_persistence import (
+    DiaryEntryNameRecord,
+    DiaryEntryRecord,
+    DiaryEntryTopicRecord,
+)
 
 
 @pytest.fixture
@@ -66,6 +71,62 @@ def test_letter_release_date_tags_and_hash_round_trip(sql_app):
         assert loaded.entry.release_date == release
         assert loaded.entry.tags == ("family",)
         assert verify_hash_chain(tuple(x.chain_entry for x in repo.list_for_owner("owner-a")))
+
+
+def test_sqlalchemy_rejects_diary_entry_update_and_delete(sql_app):
+    with sql_app.app_context():
+        service = DiaryService(SQLAlchemyEntryRepository())
+        service.add_diary_entry(
+            "owner-a",
+            "entry-immutable",
+            "A note about Alex #family.",
+            datetime(2026, 11, 14, 10, tzinfo=timezone.utc),
+            (PersonReference("alex", "Alex Smith", ("Alex",)),),
+        )
+        record = db.session.get(DiaryEntryRecord, ("owner-a", "entry-immutable"))
+        record.content = "Edited content."
+        with pytest.raises(ValueError, match="append-only"):
+            db.session.flush()
+        db.session.rollback()
+
+        record = db.session.get(DiaryEntryRecord, ("owner-a", "entry-immutable"))
+        db.session.delete(record)
+        with pytest.raises(ValueError, match="append-only"):
+            db.session.flush()
+        db.session.rollback()
+
+
+@pytest.mark.parametrize(
+    ("evidence_model", "field_name", "operation"),
+    (
+        (DiaryEntryNameRecord, "name", "update"),
+        (DiaryEntryNameRecord, "name", "delete"),
+        (DiaryEntryTopicRecord, "topic", "update"),
+        (DiaryEntryTopicRecord, "topic", "delete"),
+    ),
+)
+def test_sqlalchemy_rejects_related_entry_evidence_update_and_delete(
+    sql_app, evidence_model, field_name, operation
+):
+    with sql_app.app_context():
+        service = DiaryService(SQLAlchemyEntryRepository())
+        service.add_diary_entry(
+            "owner-a",
+            "entry-evidence",
+            "Alex wrote about #family.",
+            datetime(2026, 11, 14, 10, tzinfo=timezone.utc),
+            (PersonReference("alex", "Alex Smith", ("Alex",)),),
+        )
+        evidence = db.session.get(
+            evidence_model, ("owner-a", "entry-evidence", 0)
+        )
+        if operation == "update":
+            setattr(evidence, field_name, "Changed evidence")
+        else:
+            db.session.delete(evidence)
+        with pytest.raises(ValueError, match="append-only"):
+            db.session.flush()
+        db.session.rollback()
 
 
 def test_access_state_summaries_and_owner_context_are_durable(sql_app):

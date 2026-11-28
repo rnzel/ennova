@@ -42,11 +42,30 @@ class TamperDetected(EnnovaError, ValueError):
             detail = args[0]
         else:
             detail = args or None
+        message = "These records could not be verified and are unavailable."
+        if isinstance(detail, dict):
+            reason = detail.get("reason")
+            position = detail.get("position")
+            if (
+                isinstance(reason, str)
+                and isinstance(position, int)
+                and not isinstance(position, bool)
+            ):
+                message = (
+                    f"Hash-chain verification failed at position {position}: {reason}."
+                )
         super().__init__(
             "tamper_detected",
             "These records could not be verified and are unavailable.",
             detail=detail,
         )
+        # Keep diagnostic context available to trusted internal callers while
+        # public API handlers continue to use the generic public_message.
+        self.message = message
+
+    def __str__(self) -> str:
+        """Describe a broken link without including entry content or hashes."""
+        return self.message
 
 
 class PolicyFrozen(EnnovaError):

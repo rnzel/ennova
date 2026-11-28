@@ -156,6 +156,21 @@ def test_processing_errors_keep_candidate_and_chain_position_details_private():
     }
     assert "Alex Smith" not in str(ambiguous_error.value)
     assert "0" * 64 not in repr(tamper_error.value)
+    assert "position 0" in str(tamper_error.value)
+    assert "hash-chain link mismatch" in str(tamper_error.value)
+
+
+def test_tamper_diagnostic_message_is_not_used_in_public_response():
+    error = TamperDetected(
+        {"reason": "hash-chain link mismatch", "position": 4}
+    )
+
+    assert "position 4" in str(error)
+    assert "hash-chain link mismatch" in str(error)
+    assert to_public_response(error) == {
+        "code": "tamper_detected",
+        "message": "These records could not be verified and are unavailable.",
+    }
 
 
 def test_policy_syntax_error_keeps_location_and_readable_public_diagnostic():
